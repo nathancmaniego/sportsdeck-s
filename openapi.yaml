@@ -1,0 +1,1633 @@
+openapi: 3.0.0
+info:
+  title: SportsDeck API
+  description: REST API for SportsDeck - A Premier League sports discussion platform
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Thread:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        authorId:
+          type: integer
+        teamId:
+          type: integer
+          nullable: true
+        matchId:
+          type: integer
+          nullable: true
+        isMatchThread:
+          type: boolean
+        isHidden:
+          type: boolean
+        openAt:
+          type: string
+          format: date-time
+        closeAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        threadId:
+          type: integer
+        authorId:
+          type: integer
+        parentId:
+          type: integer
+          nullable: true
+        content:
+          type: string
+        isHidden:
+          type: boolean
+        isFlagged:
+          type: boolean
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        reporterId:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, dismissed]
+        postId:
+          type: integer
+          nullable: true
+        threadId:
+          type: integer
+          nullable: true
+        aiVerdict:
+          type: string
+          nullable: true
+        aiScore:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Appeal:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Auth
+  # ---------------------------------------------------------------------------
+
+  /api/auth/signup:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, username]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                username:
+                  type: string
+            example:
+              email: "user@example.com"
+              password: "password123"
+              username: "newuser"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              example:
+                message: "User created successfully"
+                token: "eyJhbGciOiJIUzI1NiJ9..."
+                user:
+                  id: 3
+                  username: "newuser"
+                  email: "user@example.com"
+                  role: "user"
+        '400':
+          description: Missing fields or email/username already taken
+          content:
+            application/json:
+              example:
+                error: "Email already in use"
+
+  /api/auth/login:
+    post:
+      summary: Log in and receive a JWT token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              example:
+                token: "eyJhbGciOiJIUzI1NiJ9..."
+                user:
+                  id: 3
+                  username: "user1"
+                  role: "user"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              example:
+                error: "Invalid email or password"
+
+  /api/auth/logout:
+    post:
+      summary: Log out the current user
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              example:
+                message: "Logged out successfully"
+        '401':
+          description: Unauthorized
+
+  # ---------------------------------------------------------------------------
+  # Threads
+  # ---------------------------------------------------------------------------
+
+  /api/threads:
+    get:
+      summary: Browse and search all threads
+      description: Returns all visible threads. Supports filtering by title, teamId, matchId, and tag.
+      tags: [Threads]
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          description: Filter by title (partial match)
+        - in: query
+          name: teamId
+          schema:
+            type: integer
+          description: Filter by team ID
+        - in: query
+          name: matchId
+          schema:
+            type: integer
+          description: Filter by match ID
+        - in: query
+          name: tag
+          schema:
+            type: string
+          description: Filter by tag name
+      responses:
+        '200':
+          description: List of threads
+          content:
+            application/json:
+              example:
+                - id: 382
+                  title: "Henry? Shearer? Rooney? Who is the GOAT?"
+                  authorId: 1
+                  isMatchThread: false
+                  isHidden: false
+                  openAt: "2026-03-06T18:20:49.909Z"
+                  author:
+                    username: "SportsDeck"
+                    avatar: null
+                  tags:
+                    - tag:
+                        id: 1
+                        name: "PL"
+                  _count:
+                    posts: 3
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Create a new thread
+      description: Creates a new thread with an initial post. Requires authentication.
+      tags: [Threads]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                teamId:
+                  type: integer
+                  nullable: true
+                matchId:
+                  type: integer
+                  nullable: true
+                tags:
+                  type: array
+                  items:
+                    type: string
+            example:
+              title: "Who is the best PL striker ever?"
+              content: "Let's debate this!"
+              tags: ["Debate", "PL"]
+      responses:
+        '201':
+          description: Thread created
+          content:
+            application/json:
+              example:
+                id: 383
+                title: "Who is the best PL striker ever?"
+                authorId: 1
+                isMatchThread: false
+                createdAt: "2026-03-06T18:20:49.910Z"
+        '401':
+          description: Unauthorized
+
+  /api/threads/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a single thread
+      description: Returns full details for one thread including posts, tags, and match info.
+      tags: [Threads]
+      responses:
+        '200':
+          description: Thread details
+          content:
+            application/json:
+              example:
+                id: 382
+                title: "Henry? Shearer? Rooney? Who is the GOAT?"
+                author:
+                  username: "SportsDeck"
+                  avatar: null
+                tags:
+                  - tag:
+                      id: 1
+                      name: "PL"
+                posts:
+                  - id: 2
+                    content: "Henry? Shearer? Rooney? Let's settle this."
+                    authorId: 1
+                    createdAt: "2026-03-06T18:20:49.910Z"
+        '404':
+          description: Thread not found
+
+    put:
+      summary: Edit a thread
+      description: Edit a thread's title or tags. Author only.
+      tags: [Threads]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+            example:
+              title: "Updated thread title"
+              tags: ["PL", "GOAT"]
+      responses:
+        '200':
+          description: Thread updated
+          content:
+            application/json:
+              example:
+                id: 382
+                title: "Updated thread title"
+                tags:
+                  - tag:
+                      id: 1
+                      name: "PL"
+        '400':
+          description: Invalid or empty JSON body
+          content:
+            application/json:
+              example:
+                error: "Invalid or empty JSON body"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - not the author
+        '404':
+          description: Thread not found
+
+    delete:
+      summary: Delete (hide) a thread
+      description: Soft-deletes a thread by marking it hidden. Author or admin only.
+      tags: [Threads]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Thread hidden
+          content:
+            application/json:
+              example:
+                message: "Thread hidden successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Thread not found
+
+  /api/threads/{id}/posts:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get all posts in a thread
+      description: Defaults to top-level posts with replies nested inside. Use parentId to filter.
+      tags: [Threads]
+      parameters:
+        - in: query
+          name: parentId
+          schema:
+            type: string
+          description: Use "null" for top-level only, or a number for replies to a specific post
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              example:
+                - id: 2
+                  content: "Henry? Shearer? Rooney? Let's settle this."
+                  authorId: 1
+                  parentId: null
+                  version: 1
+                  author:
+                    username: "SportsDeck"
+                    avatar: null
+                  replies:
+                    - id: 3
+                      content: "Has to be Henry!"
+                      parentId: 2
+                  _count:
+                    replies: 1
+        '404':
+          description: Thread not found
+
+    post:
+      summary: Create a post or reply in a thread
+      description: Creates a new post in a thread. Set parentId to reply to another post. Requires authentication.
+      tags: [Threads]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                parentId:
+                  type: integer
+                  nullable: true
+            example:
+              content: "Has to be Shearer, 260 goals!"
+              parentId: 2
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              example:
+                id: 8
+                threadId: 382
+                authorId: 1
+                parentId: 2
+                content: "Has to be Shearer, 260 goals!"
+                version: 1
+                createdAt: "2026-03-06T19:14:56.446Z"
+        '400':
+          description: Missing content or thread is closed
+        '401':
+          description: Unauthorized
+        '403':
+          description: Thread is closed
+        '404':
+          description: Thread or parent post not found
+
+  /api/threads/{id}/polls:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get polls for a thread
+      tags: [Threads]
+      responses:
+        '200':
+          description: List of polls in the thread
+          content:
+            application/json:
+              example:
+                - id: 1
+                  question: "Who is the GOAT?"
+                  deadline: "2026-04-01T00:00:00.000Z"
+                  options:
+                    - id: 1
+                      text: "Henry"
+                    - id: 2
+                      text: "Shearer"
+        '404':
+          description: Thread not found
+
+    post:
+      summary: Create a poll in a thread
+      tags: [Threads]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question, deadline, options]
+              properties:
+                question:
+                  type: string
+                deadline:
+                  type: string
+                  format: date-time
+                options:
+                  type: array
+                  items:
+                    type: string
+            example:
+              question: "Who is the GOAT?"
+              deadline: "2026-04-01T00:00:00.000Z"
+              options: ["Henry", "Shearer", "Rooney"]
+      responses:
+        '201':
+          description: Poll created
+        '401':
+          description: Unauthorized
+        '404':
+          description: Thread not found
+
+  /api/threads/{id}/sentiment:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get AI sentiment analysis for a thread
+      description: Returns the overall mood and team-specific sentiment for the thread.
+      tags: [Threads]
+      responses:
+        '200':
+          description: Sentiment analysis result
+          content:
+            application/json:
+              example:
+                threadId: 382
+                overallMood: "positive"
+                homeTeamMood: "excited"
+                awayTeamMood: "neutral"
+                calculatedAt: "2026-03-06T20:00:00.000Z"
+        '404':
+          description: Thread not found
+
+  # ---------------------------------------------------------------------------
+  # Posts
+  # ---------------------------------------------------------------------------
+
+  /api/posts/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: Edit a post
+      description: Updates post content and saves the old version to history. Author only.
+      tags: [Posts]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+            example:
+              content: "Actually, it has to be Shearer. 260 Premier League goals!"
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              example:
+                id: 2
+                content: "Actually, it has to be Shearer. 260 Premier League goals!"
+                version: 2
+                updatedAt: "2026-03-06T20:00:00.000Z"
+                author:
+                  username: "SportsDeck"
+                  avatar: null
+        '400':
+          description: Missing or invalid content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - not the author
+        '404':
+          description: Post not found
+
+    delete:
+      summary: Delete (hide) a post
+      description: Soft-deletes a post by marking it hidden. Author or admin only.
+      tags: [Posts]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Post deleted
+          content:
+            application/json:
+              example:
+                message: "Post deleted successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Post not found
+
+  /api/posts/{id}/history:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get version history of a post
+      description: Returns the current content and all previous versions of the post.
+      tags: [Posts]
+      responses:
+        '200':
+          description: Post version history
+          content:
+            application/json:
+              example:
+                currentVersion:
+                  content: "Actually, it has to be Shearer. 260 Premier League goals!"
+                  version: 2
+                  updatedAt: "2026-03-06T20:00:00.000Z"
+                  author:
+                    username: "SportsDeck"
+                    avatar: null
+                history:
+                  - id: 1
+                    postId: 2
+                    content: "Henry? Shearer? Rooney? Let's settle this."
+                    editedAt: "2026-03-06T19:00:00.000Z"
+        '404':
+          description: Post not found
+
+  /api/posts/{id}/translate:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get available translations for a post
+      tags: [Posts]
+      responses:
+        '200':
+          description: List of available translations
+          content:
+            application/json:
+              example:
+                translations:
+                  - language: "fr"
+                    content: "Il faut que ce soit Shearer."
+                    createdAt: "2026-03-06T20:00:00.000Z"
+        '404':
+          description: Post not found
+
+    post:
+      summary: Translate a post to another language
+      description: Generates and stores a translation of the post. Requires authentication.
+      tags: [Posts]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language]
+              properties:
+                language:
+                  type: string
+                  description: BCP-47 language tag e.g. "fr", "es"
+            example:
+              language: "fr"
+      responses:
+        '201':
+          description: Translation created
+          content:
+            application/json:
+              example:
+                language: "fr"
+                content: "Il faut que ce soit Shearer."
+        '400':
+          description: Missing language
+        '401':
+          description: Unauthorized
+        '404':
+          description: Post not found
+
+  # ---------------------------------------------------------------------------
+  # Polls
+  # ---------------------------------------------------------------------------
+
+  /api/polls/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a poll by ID
+      tags: [Polls]
+      responses:
+        '200':
+          description: Poll details with vote counts
+          content:
+            application/json:
+              example:
+                id: 1
+                question: "Who is the GOAT?"
+                deadline: "2026-04-01T00:00:00.000Z"
+                options:
+                  - id: 1
+                    text: "Henry"
+                    _count:
+                      votes: 5
+                  - id: 2
+                    text: "Shearer"
+                    _count:
+                      votes: 8
+        '404':
+          description: Poll not found
+
+    put:
+      summary: Edit a poll
+      tags: [Polls]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              question: "Updated poll question?"
+              deadline: "2026-05-01T00:00:00.000Z"
+      responses:
+        '200':
+          description: Poll updated
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Poll not found
+
+    delete:
+      summary: Delete a poll
+      tags: [Polls]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Poll deleted
+          content:
+            application/json:
+              example:
+                message: "Poll deleted successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Poll not found
+
+  /api/polls/{id}/vote:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Vote on a poll
+      description: Cast a vote on a poll option. One vote per user per poll.
+      tags: [Polls]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [optionId]
+              properties:
+                optionId:
+                  type: integer
+            example:
+              optionId: 2
+      responses:
+        '201':
+          description: Vote cast successfully
+          content:
+            application/json:
+              example:
+                message: "Vote recorded"
+                optionId: 2
+        '400':
+          description: Already voted or poll has expired
+        '401':
+          description: Unauthorized
+        '404':
+          description: Poll or option not found
+
+  # ---------------------------------------------------------------------------
+  # Matches
+  # ---------------------------------------------------------------------------
+
+  /api/matches:
+    get:
+      summary: Get all Premier League matches
+      description: Returns matches with optional filtering by status or matchday.
+      tags: [Matches]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [SCHEDULED, TIMED, IN_PLAY, PAUSED, FINISHED, POSTPONED]
+          description: Filter by match status
+        - in: query
+          name: matchday
+          schema:
+            type: integer
+          description: Filter by matchday number
+      responses:
+        '200':
+          description: List of matches
+          content:
+            application/json:
+              example:
+                - id: 1
+                  externalId: 435197
+                  status: "FINISHED"
+                  matchday: 1
+                  utcDate: "2024-08-16T19:00:00.000Z"
+                  homeTeam:
+                    name: "Manchester City"
+                    crestUrl: "https://crests.football-data.org/65.svg"
+                  awayTeam:
+                    name: "Chelsea"
+                    crestUrl: "https://crests.football-data.org/61.svg"
+                  homeScore: 2
+                  awayScore: 0
+
+  /api/matches/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a single match by ID
+      tags: [Matches]
+      responses:
+        '200':
+          description: Match details
+          content:
+            application/json:
+              example:
+                id: 1
+                status: "FINISHED"
+                matchday: 1
+                homeTeam:
+                  name: "Manchester City"
+                awayTeam:
+                  name: "Chelsea"
+                homeScore: 2
+                awayScore: 0
+        '404':
+          description: Match not found
+
+  # ---------------------------------------------------------------------------
+  # Matchdays
+  # ---------------------------------------------------------------------------
+
+  /api/matchdays:
+    get:
+      summary: Get all available matchdays
+      tags: [Matchdays]
+      responses:
+        '200':
+          description: List of matchday numbers and current matchday
+          content:
+            application/json:
+              example:
+                matchdays: [1, 2, 3, 4, 5]
+                current: 28
+
+  /api/matchdays/{matchday}:
+    parameters:
+      - in: path
+        name: matchday
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get all matches for a specific matchday
+      tags: [Matchdays]
+      responses:
+        '200':
+          description: Matches for the matchday
+          content:
+            application/json:
+              example:
+                matchday: 28
+                matches:
+                  - id: 1
+                    status: "SCHEDULED"
+                    homeTeam:
+                      name: "Arsenal"
+                    awayTeam:
+                      name: "Liverpool"
+                    utcDate: "2026-03-15T15:00:00.000Z"
+        '404':
+          description: Matchday not found
+
+  # ---------------------------------------------------------------------------
+  # Standings
+  # ---------------------------------------------------------------------------
+
+  /api/standings:
+    get:
+      summary: Get current Premier League standings
+      description: Returns the current PL table fetched from cache or live API.
+      tags: [Standings]
+      responses:
+        '200':
+          description: Current standings table
+          content:
+            application/json:
+              example:
+                standings:
+                  - position: 1
+                    team:
+                      name: "Liverpool"
+                      crestUrl: "https://crests.football-data.org/64.svg"
+                    playedGames: 28
+                    points: 67
+                    won: 21
+                    draw: 4
+                    lost: 3
+                    goalsFor: 65
+                    goalsAgainst: 28
+
+  # ---------------------------------------------------------------------------
+  # Reports
+  # ---------------------------------------------------------------------------
+
+  /api/reports:
+    post:
+      summary: Submit a report on a post or thread
+      description: Requires authentication. Provide either postId or threadId, not both. AI toxicity verdict is generated asynchronously after submission.
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                postId:
+                  type: integer
+                  nullable: true
+                threadId:
+                  type: integer
+                  nullable: true
+            example:
+              reason: "This post contains toxic content"
+              postId: 2
+      responses:
+        '201':
+          description: Report submitted successfully
+          content:
+            application/json:
+              example:
+                message: "Report submitted"
+                report:
+                  id: 1
+                  reason: "This post contains toxic content"
+                  status: "pending"
+                  postId: 2
+                  threadId: null
+                  createdAt: "2026-03-06T20:00:00.000Z"
+        '400':
+          description: Missing reason, invalid JSON, or both/neither postId and threadId provided
+          content:
+            application/json:
+              example:
+                error: "Either postId or threadId must be provided"
+        '401':
+          description: Unauthorized
+        '404':
+          description: Post or thread not found
+
+  # ---------------------------------------------------------------------------
+  # Admin - Reports
+  # ---------------------------------------------------------------------------
+
+  /api/admin/reports:
+    get:
+      summary: View report queue (admin only)
+      description: Returns a paginated list of reports sorted by AI toxicity score descending, then by date. Admin only.
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, dismissed]
+          description: Filter by report status (default - pending)
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (default - 1)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Results per page (default - 20, max - 50)
+      responses:
+        '200':
+          description: Paginated list of reports
+          content:
+            application/json:
+              example:
+                reports:
+                  - id: 1
+                    reason: "Toxic content"
+                    status: "pending"
+                    aiScore: 0.95
+                    aiVerdict: "High toxicity detected"
+                    postId: 2
+                    threadId: null
+                    reporter:
+                      id: 3
+                      username: "user1"
+                    post:
+                      id: 2
+                      content: "Henry? Shearer? Rooney?"
+                      authorId: 1
+                pagination:
+                  total: 1
+                  page: 1
+                  limit: 20
+                  pages: 1
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+
+  /api/admin/reports/{id}/approve:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Approve a report (admin only)
+      description: Marks the report as approved and hides the reported post or thread.
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Report approved and content hidden
+          content:
+            application/json:
+              example:
+                message: "Report approved, content hidden"
+                report:
+                  id: 1
+                  status: "approved"
+        '400':
+          description: Report already processed
+          content:
+            application/json:
+              example:
+                error: "Report already processed"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+        '404':
+          description: Report not found
+
+  /api/admin/reports/{id}/dismiss:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Dismiss a report (admin only)
+      description: Marks the report as dismissed without hiding any content.
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Report dismissed
+          content:
+            application/json:
+              example:
+                message: "Report dismissed"
+                report:
+                  id: 2
+                  status: "dismissed"
+        '400':
+          description: Report already processed
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+        '404':
+          description: Report not found
+
+  # ---------------------------------------------------------------------------
+  # Admin - Users
+  # ---------------------------------------------------------------------------
+
+  /api/admin/users/{id}/ban:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Ban a user (admin only)
+      description: Bans a user from the platform. Admins cannot ban themselves.
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User banned successfully
+          content:
+            application/json:
+              example:
+                message: "User banned successfully"
+                user:
+                  id: 3
+                  username: "user1"
+                  isBanned: true
+        '400':
+          description: User already banned or attempting to ban yourself
+          content:
+            application/json:
+              example:
+                error: "User is already banned"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+        '404':
+          description: User not found
+
+  /api/admin/users/{id}/unban:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Unban a user (admin only)
+      description: Removes a ban from a user allowing them to access the platform again.
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User unbanned successfully
+          content:
+            application/json:
+              example:
+                message: "User unbanned successfully"
+                user:
+                  id: 3
+                  username: "user1"
+                  isBanned: false
+        '400':
+          description: User is not banned
+          content:
+            application/json:
+              example:
+                error: "User is not banned"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin only
+        '404':
+          description: User not found
+
+  # ---------------------------------------------------------------------------
+  # Appeals
+  # ---------------------------------------------------------------------------
+
+  /api/appeals:
+    post:
+      summary: Submit a ban appeal
+      description: Allows a user to appeal a ban. Only one pending appeal allowed at a time.
+      tags: [Appeals]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+            example:
+              reason: "I was wrongly banned, please review my case"
+      responses:
+        '201':
+          description: Appeal submitted successfully
+          content:
+            application/json:
+              example:
+                message: "Appeal submitted successfully"
+                appeal:
+                  id: 1
+                  userId: 3
+                  reason: "I was wrongly banned, please review my case"
+                  status: "pending"
+                  createdAt: "2026-03-06T20:00:00.000Z"
+        '400':
+          description: Missing reason or already has a pending appeal
+          content:
+            application/json:
+              example:
+                error: "You already have a pending appeal"
+        '401':
+          description: Unauthorized
+
+  # ---------------------------------------------------------------------------
+  # Users
+  # ---------------------------------------------------------------------------
+
+  /api/users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a user's public profile
+      tags: [Users]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              example:
+                id: 3
+                username: "user1"
+                avatar: null
+                role: "user"
+                createdAt: "2026-03-06T18:00:00.000Z"
+                favoriteTeam:
+                  name: "Arsenal"
+        '404':
+          description: User not found
+
+    put:
+      summary: Update own profile
+      description: Update username, avatar, or favorite team. Users can only edit their own profile.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              username: "newusername"
+              avatar: "https://example.com/avatar.png"
+              favoriteTeamId: 5
+      responses:
+        '200':
+          description: Profile updated
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - can only edit own profile
+        '404':
+          description: User not found
+
+    delete:
+      summary: Delete own account
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account deleted
+          content:
+            application/json:
+              example:
+                message: "Account deleted successfully"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/users/{id}/activity:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a user's recent activity
+      description: Returns recent posts and threads created by the user.
+      tags: [Users]
+      responses:
+        '200':
+          description: User activity
+          content:
+            application/json:
+              example:
+                posts:
+                  - id: 2
+                    content: "Henry? Shearer? Rooney?"
+                    createdAt: "2026-03-06T18:20:49.910Z"
+                threads:
+                  - id: 382
+                    title: "Who is the GOAT?"
+                    createdAt: "2026-03-06T18:20:49.910Z"
+        '404':
+          description: User not found
+
+  /api/users/{id}/feed:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a user's activity feed
+      description: Returns feed events such as new replies and match updates. Users can only view their own feed.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Feed events
+          content:
+            application/json:
+              example:
+                - id: 1
+                  type: "new_reply"
+                  isRead: false
+                  createdAt: "2026-03-06T20:00:00.000Z"
+                  actor:
+                    username: "user2"
+                  thread:
+                    id: 382
+                    title: "Who is the GOAT?"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - own feed only
+        '404':
+          description: User not found
+
+  /api/users/{id}/follow:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Follow a user
+      description: Follow another user. Cannot follow yourself.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Now following user
+          content:
+            application/json:
+              example:
+                message: "Now following user"
+        '400':
+          description: Already following or cannot follow yourself
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+
+    delete:
+      summary: Unfollow a user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unfollowed successfully
+          content:
+            application/json:
+              example:
+                message: "Unfollowed successfully"
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found or not following
+
+  /api/users/{id}/followers:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get a user's followers
+      tags: [Users]
+      responses:
+        '200':
+          description: List of followers
+          content:
+            application/json:
+              example:
+                followers:
+                  - id: 2
+                    username: "user2"
+                    avatar: null
+        '404':
+          description: User not found
+
+  /api/users/{id}/followers/{followerId}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      - in: path
+        name: followerId
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Check if a specific user follows this user
+      tags: [Users]
+      responses:
+        '200':
+          description: Follow relationship status
+          content:
+            application/json:
+              example:
+                isFollowing: true
+        '404':
+          description: User not found
+
+    delete:
+      summary: Remove a specific follower
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Follower removed
+          content:
+            application/json:
+              example:
+                message: "Follower removed"
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Follow relationship not found
+
+  /api/users/{id}/following:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get the list of users this user is following
+      tags: [Users]
+      responses:
+        '200':
+          description: List of users being followed
+          content:
+            application/json:
+              example:
+                following:
+                  - id: 1
+                    username: "SportsDeck"
+                    avatar: null
+        '404':
+          description: User not found
+
+  # ---------------------------------------------------------------------------
+  # Digest
+  # ---------------------------------------------------------------------------
+
+  /api/digest:
+    get:
+      summary: Get the latest AI-generated daily digest
+      description: Returns an AI-generated summary of recent match results and forum highlights.
+      tags: [Digest]
+      responses:
+        '200':
+          description: Daily digest content
+          content:
+            application/json:
+              example:
+                id: 1
+                content: "Today in the Premier League: Arsenal beat Chelsea 2-0..."
+                date: "2026-03-06T00:00:00.000Z"
+        '404':
+          description: No digest available yet

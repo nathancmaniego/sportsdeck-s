@@ -1,0 +1,78 @@
+import { prisma } from "@/prisma/db";
+import { NextResponse } from "next/server";
+import { authenticate } from "@/utils/auth"; // adjust path to wherever your auth file is
+
+// Prompt: Implement GET /api/threads to return a list of threads with optional filtering by title, teamId, matchId, and tag. Implement POST /api/threads to allow authenticated users to create a new thread with a title, content, optional teamId, optional matchId, and optional tags. Ensure proper error handling and validation for both endpoints.
+// Claude Sonnet 4.6
+export async function GET(request){
+    // GET stays public, no auth needed
+    try {
+        const { searchParams } = new URL(request.url);
+        const title = searchParams.get("title");
+        const teamId = searchParams.get("teamId");
+        const matchId = searchParams.get("matchId");
+        const tag = searchParams.get("tag");
+        const threads = await prisma.thread.findMany({
+            where: {
+                isHidden: false,
+                ...(title && { title: { contains: title } }),
+                ...(teamId && { teamId: parseInt(teamId) }),
+                ...(matchId && { matchId: parseInt(matchId) }),
+                ...(tag && { tags: { some: { tag: { name: tag } } } }),
+            },
+            include: {
+                author: { select: { username: true, avatar: true } },
+                tags: { include: { tag: true } },
+                match: true,
+                _count: { select: { posts: true } }
+            },
+            orderBy: { createdAt: "desc" },
+        });
+        return NextResponse.json(threads);
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to fetch threads" }, { status: 500 });
+    }
+}
+
+export async function POST(request) {
+    // Protect POST with auth
+    const { user, error } = await authenticate(request);
+    if (error) return NextResponse.json({ error }, { status: 401 });
+
+    try {
+        const body = await request.json();
+        const { title, content, teamId, matchId, tags } = body;
+
+        const tagConnections = tags?.map((tagName) => ({
+            tag: {
+                connectOrCreate: {
+                    where: { name: tagName },
+                    create: { name: tagName },
+                },
+            },
+        })) || [];
+
+        const newThread = await prisma.thread.create({
+            data: {
+                title,
+                authorId: user.id, // use the authenticated user's id instead of body
+                teamId: teamId ? parseInt(teamId) : null,
+                matchId: matchId ? parseInt(matchId) : null,
+                isMatchThread: !!matchId,
+                openAt: new Date(),
+                tags: { create: tagConnections },
+                posts: {
+                    create: {
+                        content,
+                        authorId: user.id,
+                    },
+                },
+            },
+        });
+
+        return NextResponse.json(newThread, { status: 201 });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Could not create thread" }, { status: 500 });
+    }
+}

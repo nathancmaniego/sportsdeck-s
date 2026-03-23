@@ -1,0 +1,408 @@
+// prisma/schema.prisma
+
+/**
+ * Database schema updated to align with football-data.org v4 API
+ * for CSC309 SportsDeck — Premier League focus.
+ *
+ * Key API mappings:
+ *   Competition  → not stored (always PL, code "PL", id 2021)
+ *   Season       → Season model  (id, startDate, endDate, currentMatchday)
+ *   Team         → Team model    (externalId maps to API `id`, crest = logoUrl)
+ *   Match        → Match model   (externalId maps to API `id`)
+ *   Matchday     → stored as Match.matchday (Int)
+ *   Stage        → stored as Match.stage (String, e.g. "REGULAR_SEASON")
+ *   Score        → stored as homeScore / awayScore + halfTimeHome / halfTimeAway
+ *   Status       → "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "FINISHED"
+ *                  | "POSTPONED" | "SUSPENDED" | "CANCELLED"
+ *   Standings    → not stored separately; fetched live and cached in ApiCache
+ *
+ * Changes from NBA version:
+ *   - Removed `conference`, `division` from Team; added `tla`, `crestUrl`, `venue`
+ *   - Removed `week` from Match; added `matchday`, `stage`, `halfTimeHome/Away`
+ *   - Replaced `LeagueStage` with `Season` (mirrors API Season object)
+ *   - Season now linked from Match (was leagueStageId → seasonId)
+ *   - Match status values updated to football-data.org enum strings
+ */
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ---------------------------------------------------------------------------
+// Auth & Users
+// ---------------------------------------------------------------------------
+
+model User {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  password       String?   // nullable for OAuth users
+  username       String    @unique
+  avatar         String?
+  role           String    @default("user") // "user" | "admin"
+  isBanned       Boolean   @default(false)
+  favoriteTeamId Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  favoriteTeam   Team?          @relation(fields: [favoriteTeamId], references: [id])
+  oauthAccounts  OAuthAccount[]
+  threads        Thread[]
+  posts          Post[]
+  votes          Vote[]
+  reports        Report[]
+  appeals        Appeal[]
+  following      Follow[]       @relation("follower")
+  followers      Follow[]       @relation("following")
+  feedEvents     FeedEvent[]    @relation("feedOwner")
+  actedEvents    FeedEvent[]    @relation("feedActor")
+}
+
+model OAuthAccount {
+  id         Int      @id @default(autoincrement())
+  provider   String   // "google" | "github"
+  providerId String   // their ID from the provider
+  userId     Int
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerId])
+}
+
+// ---------------------------------------------------------------------------
+// Football-data.org — League / Competition data
+// ---------------------------------------------------------------------------
+
+/// Mirrors the football-data.org Season object returned inside a Competition.
+/// Premier League (code "PL", id 2021) seasons are seeded on startup.
+model Season {
+  id               Int      @id @default(autoincrement())
+  /// football-data.org season id (e.g. 1564 for 2024/25)
+  externalId       Int      @unique
+  startDate        DateTime
+  endDate          DateTime
+  currentMatchday  Int?
+  winner           String?  // team name, set once season ends
+  createdAt        DateTime @default(now())
+
+  matches          Match[]
+}
+
+/// Mirrors the football-data.org Team object.
+/// 20 Premier League teams are seeded on startup via
+///   GET /v4/competitions/PL/teams
+model Team {
+  id           Int      @id @default(autoincrement())
+  /// football-data.org team id (e.g. 57 for Arsenal)
+  externalId   Int      @unique
+  name         String               // e.g. "Arsenal FC"
+  shortName    String               // e.g. "Arsenal"
+  /// Three-letter abbreviation used by the API (field: `tla`)
+  tla          String               // e.g. "ARS"
+  crestUrl     String?              // URL to team crest SVG/PNG
+  venue        String?              // home stadium name
+  founded      Int?
+  clubColors   String?              // e.g. "Red / White"
+  website      String?
+  createdAt    DateTime @default(now())
+
+  // Relations
+  users        User[]
+  homeMatches  Match[]  @relation("homeTeam")
+  awayMatches  Match[]  @relation("awayTeam")
+  threads      Thread[]
+}
+
+/// Mirrors the football-data.org Match object.
+/// Fetched via GET /v4/competitions/PL/matches
+model Match {
+  id             Int       @id @default(autoincrement())
+  /// football-data.org match id
+  externalId     Int       @unique
+  seasonId       Int
+  homeTeamId     Int
+  awayTeamId     Int
+
+  /// Full-time scores (null until FINISHED)
+  homeScore      Int?
+  awayScore      Int?
+  /// Half-time scores (null until at least half-time)
+  halfTimeHome   Int?
+  halfTimeAway   Int?
+
+  utcDate        DateTime              // kick-off time in UTC
+  /// football-data.org status enum:
+  /// "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED"
+  /// | "FINISHED" | "POSTPONED" | "SUSPENDED" | "CANCELLED"
+  status         String
+  /// Matchday number within the season (1–38 for PL regular season)
+  matchday       Int?
+  /// Stage string from API, e.g. "REGULAR_SEASON"
+  stage          String    @default("REGULAR_SEASON")
+  /// The season string shown to users, e.g. "2024-25"
+  seasonLabel    String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastUpdated    DateTime?  // from API's lastUpdated field
+
+
+  // Relations
+  season         Season      @relation(fields: [seasonId], references: [id])
+  homeTeam       Team        @relation("homeTeam", fields: [homeTeamId], references: [id])
+  awayTeam       Team        @relation("awayTeam", fields: [awayTeamId], references: [id])
+  thread         Thread?
+  feedEvents     FeedEvent[]
+
+  @@index([matchday, status])
+  @@index([utcDate])
+}
+
+// ---------------------------------------------------------------------------
+// Forums & Discussions
+// ---------------------------------------------------------------------------
+
+model Thread {
+  id            Int       @id @default(autoincrement())
+  title         String
+  authorId      Int
+  teamId        Int?      // null if general forum
+  matchId       Int?      @unique // null if not a match thread
+  isMatchThread Boolean   @default(false)
+  isAutoCreated Boolean   @default(false)
+  isHidden      Boolean   @default(false)
+  openAt        DateTime  // up to 2 weeks before match, or createdAt
+  closeAt       DateTime? // 2 weeks after match ends; null for general threads
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  author        User             @relation(fields: [authorId], references: [id])
+  team          Team?            @relation(fields: [teamId], references: [id])
+  match         Match?           @relation(fields: [matchId], references: [id])
+  posts         Post[]
+  tags          ThreadTag[]
+  reports       Report[]
+  sentiment     ThreadSentiment?
+  feedEvents    FeedEvent[]
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  threadId    Int
+  authorId    Int
+  parentId    Int?      // null if top-level post; set if reply
+  content     String
+  isHidden    Boolean   @default(false)
+  isFlagged   Boolean   @default(false) // auto-flagged by AI
+  flagReason  String?   // AI reason for flagging
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  thread      Thread        @relation(fields: [threadId], references: [id])
+  author      User          @relation(fields: [authorId], references: [id])
+  parent      Post?         @relation("replies", fields: [parentId], references: [id])
+  replies     Post[]        @relation("replies")
+  editHistory PostEdit[]
+  poll        Poll?
+  reports     Report[]
+  feedEvents  FeedEvent[]
+  translations Translation[]
+
+  @@index([authorId, createdAt]) // for user activity chart queries
+}
+
+model Translation {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  language  String   // BCP-47 tag, e.g. "fr", "es"
+  content   String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id])
+
+  @@unique([postId, language])
+}
+
+model PostEdit {
+  id       Int      @id @default(autoincrement())
+  postId   Int
+  content  String   // the old content before this edit
+  editedAt DateTime @default(now())
+
+  post     Post     @relation(fields: [postId], references: [id])
+}
+
+model Tag {
+  id      Int         @id @default(autoincrement())
+  name    String      @unique
+  threads ThreadTag[]
+}
+
+model ThreadTag {
+  threadId Int
+  tagId    Int
+
+  thread   Thread @relation(fields: [threadId], references: [id])
+  tag      Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([threadId, tagId])
+}
+
+// ---------------------------------------------------------------------------
+// Polls & Voting
+// ---------------------------------------------------------------------------
+
+model Poll {
+  id        Int          @id @default(autoincrement())
+  postId    Int          @unique // poll lives inside a post
+  question  String
+  deadline  DateTime
+  createdAt DateTime     @default(now())
+
+  post      Post         @relation(fields: [postId], references: [id])
+  options   PollOption[]
+  votes     Vote[]
+}
+
+model PollOption {
+  id     Int    @id @default(autoincrement())
+  pollId Int
+  text   String
+
+  poll   Poll   @relation(fields: [pollId], references: [id])
+  votes  Vote[]
+}
+
+model Vote {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  pollId       Int        // enforce one vote per poll
+  pollOptionId Int
+  createdAt    DateTime   @default(now())
+
+  user         User       @relation(fields: [userId], references: [id])
+  pollOption   PollOption @relation(fields: [pollOptionId], references: [id])
+  poll         Poll       @relation(fields: [pollId], references: [id])
+
+  @@unique([userId, pollId])
+}
+
+// ---------------------------------------------------------------------------
+// Moderation
+// ---------------------------------------------------------------------------
+
+model Report {
+  id         Int      @id @default(autoincrement())
+  reporterId Int
+  reason     String
+  status     String   @default("pending") // "pending" | "dismissed" | "approved"
+  postId     Int?
+  threadId   Int?
+  aiVerdict  String?  // AI-generated verdict text
+  aiScore    Float?   // toxicity score (0.0 – 1.0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  post       Post?    @relation(fields: [postId], references: [id])
+  thread     Thread?  @relation(fields: [threadId], references: [id])
+}
+
+model Appeal {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  reason    String
+  status    String   @default("pending") // "pending" | "approved" | "rejected"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Social
+// ---------------------------------------------------------------------------
+
+model Follow {
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("follower",  fields: [followerId],  references: [id])
+  following   User     @relation("following", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+}
+
+model FeedEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int      // feed owner
+  actorId   Int      // who triggered the event
+  /// "new_post" | "new_reply" | "new_match" | "new_thread"
+  /// | "match_score" | "match_status"
+  type      String
+  threadId  Int?
+  postId    Int?
+  matchId   Int?
+  /// Group key for collapsing related events, e.g. "thread_123"
+  groupKey  String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation("feedOwner", fields: [userId],   references: [id])
+  actor     User     @relation("feedActor", fields: [actorId],  references: [id])
+  thread    Thread?  @relation(fields: [threadId], references: [id])
+  post      Post?    @relation(fields: [postId],   references: [id])
+  match     Match?   @relation(fields: [matchId],  references: [id])
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// AI Features
+// ---------------------------------------------------------------------------
+
+model ThreadSentiment {
+  id            Int      @id @default(autoincrement())
+  threadId      Int      @unique
+  overallMood   String   // "positive" | "negative" | "mixed" | "neutral"
+  homeTeamMood  String?  // mood of home-team fans' comments
+  awayTeamMood  String?  // mood of away-team fans' comments
+  calculatedAt  DateTime @default(now())
+
+  thread        Thread   @relation(fields: [threadId], references: [id])
+}
+
+model DailyDigest {
+  id       Int      @id @default(autoincrement())
+  content  String   // AI-generated digest text
+  date     DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Caching
+// ---------------------------------------------------------------------------
+
+/// Generic key-value cache for football-data.org responses.
+/// Suggested keys:
+///   "standings"                  → current PL table
+///   "matches_matchday_{n}"       → all matches on matchday n
+///   "matches_status_SCHEDULED"   → upcoming matches
+///   "team_{externalId}"          → team detail
+///   "season_current"             → current season metadata
+model ApiCache {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  data      String   // JSON-stringified API response
+  cachedAt  DateTime @default(now())
+  expiresAt DateTime
+}

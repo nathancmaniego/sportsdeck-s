@@ -1,0 +1,2744 @@
+{
+  "info": {
+    "_postman_id": "4e7653b1-15e5-4eee-a989-3793070cc8a3",
+    "name": "SportsDeck API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "47570791",
+    "_collection_link": "https://go.postman.co/collection/47570791-4e7653b1-15e5-4eee-a989-3793070cc8a3?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set(\"token\", pm.response.json().data.token)",
+                  "    pm.environment.set(\"userId\", pm.response.json().data.user.id)",
+                  "    console.log(\"Signup successful, token saved!\")",
+                  "}",
+                  "",
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201))",
+                  "pm.test(\"Returns token\", () => pm.expect(pm.response.json().data.token).to.exist)",
+                  "pm.test(\"Returns user\", () => pm.expect(pm.response.json().data.user).to.exist)"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test1@test.com\",\n  \"password\": \"password123\",\n  \"username\": \"testuser1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "signup"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set(\"token\", pm.response.json().data.token)",
+                  "  pm.environment.set(\"userId\", pm.response.json().data.user.id)",
+                  "  console.log(\"Token saved!\")",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test1@test.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200))",
+                  "pm.test(\"Returns success\", () => pm.expect(pm.response.json().success).to.be.true)"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@test.com\",\n  \"password\": \"password123\",\n  \"username\": \"testuser\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matches(TIMED/UPCOMING)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches?status=TIMED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matches"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "TIMED"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matches(FINISHED)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches?status=FINISHED&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matches"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "FINISHED"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matches(matchday)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches?matchday=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matches"
+              ],
+              "query": [
+                {
+                  "key": "matchday",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matches(single match)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matches",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Standings",
+      "item": [
+        {
+          "name": "Standings (PL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/standings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "standings"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Matchdays",
+      "item": [
+        {
+          "name": "matchdays",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matchdays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matchdays"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matchdays (single)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matchdays/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matchdays",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "matchdays (current)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/matchdays/28",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "matchdays",
+                "28"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "[id]",
+          "item": [
+            {
+              "name": "follow",
+              "item": [
+                {
+                  "name": "Follow user – success (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                          "pm.test('message is User followed', () => {",
+                          "  pm.expect(pm.response.json().message).to.equal('User followed');",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{userToken}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/users/{{otherId}}/follow",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "users",
+                        "{{otherId}}",
+                        "follow"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Follow same user again – idempotent (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Duplicate follow does not error', () => {",
+                          "  pm.expect([200, 201]).to.include(pm.response.code);",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{userToken}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/users/{{otherId}}/follow",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "users",
+                        "{{otherId}}",
+                        "follow"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "following",
+              "item": [
+                {
+                  "name": "Get following list – success (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "",
+                          "const json = pm.response.json();",
+                          "pm.test('following is an array', () => pm.expect(json.following).to.be.an('array'));",
+                          "pm.test('pagination present', () => {",
+                          "  pm.expect(json.pagination.total).to.be.a('number');",
+                          "  pm.expect(json.pagination.page).to.equal(1);",
+                          "});",
+                          "",
+                          "pm.test('contains the followed user', () => {",
+                          "  const otherId = parseInt(pm.collectionVariables.get('otherId'));",
+                          "  pm.expect(json.following.some(u => u.id === otherId)).to.be.true;",
+                          "});",
+                          "",
+                          "pm.test('each entry has expected fields', () => {",
+                          "  json.following.forEach(u => {",
+                          "    pm.expect(u.id).to.be.a('number');",
+                          "    pm.expect(u.username).to.be.a('string');",
+                          "    pm.expect(u.followedAt).to.be.a('string');",
+                          "  });",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/users/{{userId}}/following",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "users",
+                        "{{userId}}",
+                        "following"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "followers",
+              "item": [
+                {
+                  "name": "[followerId]",
+                  "item": [
+                    {
+                      "name": "Remove follower – success (200)",
+                      "event": [
+                        {
+                          "listen": "test",
+                          "script": {
+                            "exec": [
+                              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                              "pm.test('message is Follower removed', () => {",
+                              "  pm.expect(pm.response.json().message).to.equal('Follower removed');",
+                              "});"
+                            ],
+                            "type": "text/javascript",
+                            "packages": {},
+                            "requests": {}
+                          }
+                        }
+                      ],
+                      "request": {
+                        "method": "DELETE",
+                        "header": [
+                          {
+                            "key": "Authorization",
+                            "value": "Bearer {{otherToken}}"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/api/users/{{otherId}}/followers/{{userId}}",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "api",
+                            "users",
+                            "{{otherId}}",
+                            "followers",
+                            "{{userId}}"
+                          ]
+                        }
+                      },
+                      "response": []
+                    }
+                  ]
+                },
+                {
+                  "name": "Get followers list – success (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "",
+                          "const json = pm.response.json();",
+                          "pm.test('followers is an array', () => pm.expect(json.followers).to.be.an('array'));",
+                          "pm.test('pagination present', () => pm.expect(json.pagination.total).to.be.a('number'));",
+                          "",
+                          "pm.test('user appears in followers', () => {",
+                          "  const userId = parseInt(pm.collectionVariables.get('userId'));",
+                          "  pm.expect(json.followers.some(u => u.id === userId)).to.be.true;",
+                          "});",
+                          "",
+                          "pm.test('sorted by followedAt descending', () => {",
+                          "  const dates = json.followers.map(u => new Date(u.followedAt).getTime());",
+                          "  for (let i = 0; i < dates.length - 1; i++) {",
+                          "    pm.expect(dates[i]).to.be.at.least(dates[i + 1]);",
+                          "  }",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/users/{{userId}}/followers",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "users",
+                        "{{userId}}",
+                        "followers"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "activity",
+          "item": [
+            {
+              "name": "Get activity – default 90 days (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test('userId matches', () => pm.expect(json.userId).to.equal(parseInt(pm.environment.get('userId'))));",
+                      "pm.test('days is 90', () => pm.expect(json.days).to.equal(90));",
+                      "pm.test('total is a number', () => pm.expect(json.total).to.be.a('number'));",
+                      "pm.test('activity is an array', () => pm.expect(json.activity).to.be.an('array'));",
+                      "pm.test('each entry has date and count', () => {",
+                      "  json.activity.forEach(a => {",
+                      "    pm.expect(a.date).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+                      "    pm.expect(a.count).to.be.a('number').and.above(0);",
+                      "  });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/{{userId}}/activity",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{userId}}",
+                    "activity"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "feed",
+          "item": [
+            {
+              "name": "Get own feed (200) Copy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test('feed is an array', () => pm.expect(json.feed).to.be.an('array'));",
+                      "pm.test('pagination present', () => {",
+                      "  pm.expect(json.pagination.total).to.be.a('number');",
+                      "  pm.expect(json.pagination.page).to.equal(1);",
+                      "});",
+                      "pm.test('unreadCount is a number', () => pm.expect(json.unreadCount).to.be.a('number'));",
+                      "pm.test('each feed item has required fields', () => {",
+                      "  json.feed.forEach(item => {",
+                      "    pm.expect(item.type).to.be.a('string');",
+                      "    pm.expect(item.isRead).to.be.a('boolean');",
+                      "    pm.expect(item.createdAt).to.be.a('string');",
+                      "    pm.expect(item.count).to.be.a('number').and.above(0);",
+                      "  });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/users/{{userId}}/feed",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{{userId}}",
+                    "feed"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Login as User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('userToken', json.data.token);",
+                  "pm.environment.set('userId', String(json.data.user.id));",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"user@example.com\", \"password\": \"password123\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Own Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newusername\",\n  \"avatar\": \"https://example.com/avatar.png\",\n  \"favoriteTeamId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Other User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('otherToken', json.data.token);",
+                  "pm.environment.set('otherId', String(json.data.user.id));",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"other@example.com\", \"password\": \"password123\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.environment.set(\"adminToken\", json.data.token);",
+                  "pm.environment.set(\"adminId\", String(json.data.user.id));",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"admin@example.com\", \"password\": \"password123\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Threads",
+      "item": [
+        {
+          "name": "[id]",
+          "item": [
+            {
+              "name": "Polls",
+              "item": [
+                {
+                  "name": "Create Poll",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                          "const json = pm.response.json();",
+                          "pm.test('post.content equals question when content omitted', () =>",
+                          "  pm.expect(json.post.content).to.equal(json.poll.question)",
+                          ");",
+                          "pm.environment.set(\"pollId\", pm.response.json().poll.id)",
+                          ""
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"question\": \"Best goal of the season?\",\n  \"options\": [\"Option A\", \"Option B\"],\n  \"deadline\": \"2099-06-01T00:00:00.000Z\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/threads/{{threadId}}/polls",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "polls"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create poll – success (201)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                          "",
+                          "const json = pm.response.json();",
+                          "pm.test('message is Poll created', () => pm.expect(json.message).to.equal('Poll created'));",
+                          "",
+                          "pm.test('post object present', () => {",
+                          "  pm.expect(json.post).to.be.an('object');",
+                          "  pm.expect(json.post.id).to.be.a('number');",
+                          "  pm.expect(json.post.content).to.be.a('string');",
+                          "  pm.expect(json.post.createdAt).to.be.a('string');",
+                          "});",
+                          "",
+                          "pm.test('poll object present', () => {",
+                          "  pm.expect(json.poll).to.be.an('object');",
+                          "  pm.expect(json.poll.id).to.be.a('number');",
+                          "  pm.expect(json.poll.question).to.equal('Who will be man of the match?');",
+                          "  pm.expect(json.poll.options).to.be.an('array').with.lengthOf(3);",
+                          "});",
+                          "",
+                          "pm.test('options have id and text', () => {",
+                          "  json.poll.options.forEach(o => {",
+                          "    pm.expect(o.id).to.be.a('number');",
+                          "    pm.expect(o.text).to.be.a('string');",
+                          "  });",
+                          "});",
+                          "",
+                          "// Stash for downstream tests",
+                          "pm.collectionVariables.set('pollId',    String(json.poll.id));",
+                          "pm.collectionVariables.set('optionId1', String(json.poll.options[0].id));",
+                          "pm.collectionVariables.set('optionId2', String(json.poll.options[1].id));"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"question\": \"Who will be man of the match?\",\n  \"options\": [\"Salah\", \"Haaland\", \"Saka\"],\n  \"deadline\": \"2099-12-31T23:59:59.000Z\",\n  \"content\": \"Vote for your pick!\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/threads/{{threadId}}/polls",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "polls"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create poll – no token (401)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                          "pm.test('error field present', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"question\": \"Q?\",\n  \"options\": [\"A\", \"B\"],\n  \"deadline\": \"2099-01-01T00:00:00.000Z\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/threads/{{threadId}}/polls",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "polls"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "sentiment",
+              "item": [
+                {
+                  "name": "Get sentiment – success (200)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "",
+                          "const json = pm.response.json();",
+                          "const validMoods = ['positive', 'negative', 'mixed', 'neutral'];",
+                          "",
+                          "pm.test('overallMood is valid', () => {",
+                          "  pm.expect(validMoods).to.include(json.overallMood);",
+                          "});",
+                          "",
+                          "pm.test('calculatedAt is a date string', () => {",
+                          "  pm.expect(json.calculatedAt).to.be.a('string');",
+                          "  pm.expect(new Date(json.calculatedAt).toString()).to.not.equal('Invalid Date');",
+                          "});",
+                          "",
+                          "pm.test('cached is a boolean', () => pm.expect(json.cached).to.be.a('boolean'));",
+                          "",
+                          "pm.test('homeTeamMood is valid or null', () => {",
+                          "  pm.expect(json.homeTeamMood === null || validMoods.includes(json.homeTeamMood)).to.be.true;",
+                          "});",
+                          "",
+                          "pm.test('awayTeamMood is valid or null', () => {",
+                          "  pm.expect(json.awayTeamMood === null || validMoods.includes(json.awayTeamMood)).to.be.true;",
+                          "});"
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/threads/{{threadId}}/sentiment",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "sentiment"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "posts",
+              "item": [
+                {
+                  "name": "GET_Post",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost:3000/api/threads/{{threadId}}/posts",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "posts"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST_createpost",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"This is a test post from Postman.\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/threads/{{threadId}}/posts",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "threads",
+                        "{{threadId}}",
+                        "posts"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "POST_reply",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"content\": \"Has to be Shearer, best Premier League striker ever.\",\n  \"authorId\": 1,\n  \"parentId\": 2\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:3000/api/threads/382/posts",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "3000",
+                      "path": [
+                        "api",
+                        "threads",
+                        "382",
+                        "posts"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "GET_Updated_Reply",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": ""
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "GET_Thread",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/threads/{{threadId}}",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "threads",
+                    "{{threadId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "GET_Match_Thread",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/threads/1",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "threads",
+                    "1"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "PUT_request",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Henry? Shearer? Rooney? Who is the GOAT? I am editing this now\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/threads/{{threadId}}",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "threads",
+                    "{{threadId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE_Thread",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/threads/{{threadId}}",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "threads",
+                    "{{threadId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GET_Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/threads",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST_Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"threadId\", pm.response.json().id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Who is the WORST in the Premier League?\",\n  \"content\": \"Henry? Shearer? Rooney? Let's settle this.\",\n  \"authorId\": 1,\n  \"tags\": [\"PL\", \"History\", \"Debate\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/threads",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Polls",
+      "item": [
+        {
+          "name": "Get poll – unauthenticated (200, userVote null)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('poll object present', () => pm.expect(json.poll).to.be.an('object'));",
+                  "pm.test('userVote is null for unauthenticated', () => pm.expect(json.userVote).to.be.null);",
+                  "",
+                  "pm.test('poll has required fields', () => {",
+                  "  const p = json.poll;",
+                  "  pm.expect(p.id).to.be.a('number');",
+                  "  pm.expect(p.question).to.be.a('string');",
+                  "  pm.expect(p.deadline).to.be.a('string');",
+                  "  pm.expect(p.isClosed).to.be.a('boolean');",
+                  "  pm.expect(p.totalVotes).to.be.a('number');",
+                  "  pm.expect(p.options).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('each option has id, text, votes, percentage', () => {",
+                  "  json.poll.options.forEach(o => {",
+                  "    pm.expect(o.id).to.be.a('number');",
+                  "    pm.expect(o.text).to.be.a('string');",
+                  "    pm.expect(o.votes).to.be.a('number');",
+                  "    pm.expect(o.percentage).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('poll is not closed (deadline far future)', () => pm.expect(json.poll.isClosed).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get poll – authenticated, userVote present after voting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "// userVote may be null before voting or a number after — just check type",
+                  "const uv = pm.response.json().userVote;",
+                  "pm.test('userVote is null or number', () => {",
+                  "  pm.expect(uv === null || typeof uv === 'number').to.be.true;",
+                  "});",
+                  "",
+                  "const res = pm.response.json();",
+                  "",
+                  "// grab first option id",
+                  "pm.environment.set(\"optionId\", res.poll.options[0].id);",
+                  "",
+                  "// optional: save poll id too",
+                  "pm.environment.set(\"pollId\", res.poll.id);",
+                  "",
+                  "// optional: save thread id",
+                  "pm.environment.set(\"threadId\", res.poll.post.threadId);",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote – success (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('message is Vote recorded', () => pm.expect(json.message).to.equal('Vote recorded'));",
+                  "pm.test('selectedOptionId matches sent optionId', () => {",
+                  "  const sent = parseInt(pm.collectionVariables.get('optionId1'));",
+                  "  pm.expect(json.selectedOptionId).to.equal(sent);",
+                  "});",
+                  "pm.test('results array present', () => pm.expect(json.results).to.be.an('array'));",
+                  "pm.test('totalVotes >= 1', () => pm.expect(json.totalVotes).to.be.at.least(1));",
+                  "",
+                  "pm.test('result percentages sum to ~100', () => {",
+                  "  const sum = json.results.reduce((s, o) => s + o.percentage, 0);",
+                  "  // allow rounding slack",
+                  "  pm.expect(sum).to.be.within(99, 101);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"optionId\": {{optionId}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}/vote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}",
+                "vote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit poll – rename existing options (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const opts = pm.response.json().poll.options;",
+                  "pm.test('still has options', () => pm.expect(opts.length).to.be.at.least(2));",
+                  "pm.test('renamed option present', () => {",
+                  "  pm.expect(opts.some(o => o.text === 'Salah (renamed)')).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"options\": [\n    { \"id\": {{optionId}}, \"text\": \"Salah (renamed)\" },\n    { \"text\": \"New Option D\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit poll – update question only (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('message is Poll updated', () => pm.expect(json.message).to.equal('Poll updated'));",
+                  "pm.test('question updated', () => pm.expect(json.poll.question).to.include('Updated:'));",
+                  "pm.test('options unchanged', () => pm.expect(json.poll.options).to.have.lengthOf(3));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"question\": \"Updated: Who will be man of the match?\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit poll – update deadline only (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('deadline updated', () => {",
+                  "  const d = pm.response.json().poll.deadline;",
+                  "  pm.expect(d).to.include('2098');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"deadline\": \"2098-06-01T00:00:00.000Z\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin can edit another user's poll (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Admin edit applied', () =>",
+                  "  pm.expect(pm.response.json().poll.question).to.equal('Admin override question')",
+                  ");"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"question\": \"Admin override question\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete poll – owner success (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('message is Poll deleted', () => pm.expect(pm.response.json().message).to.equal('Poll deleted'));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm deleted poll is gone (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 after delete', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "polls",
+                "{{pollId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Digest",
+      "item": [
+        {
+          "name": "Get digest – success (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test('id is a number', () => pm.expect(json.id).to.be.a('number'));",
+                  "pm.test('content is a non-empty string', () => {",
+                  "  pm.expect(json.content).to.be.a('string');",
+                  "  pm.expect(json.content.length).to.be.above(0);",
+                  "});",
+                  "pm.test('date is present', () => pm.expect(json.date).to.be.a('string'));",
+                  "pm.test('fresh is a boolean', () => pm.expect(json.fresh).to.be.a('boolean'));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/digest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "digest"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": []
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Translate",
+          "item": [
+            {
+              "name": "Translate post – success (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test('postId matches', () => pm.expect(json.postId).to.equal(parseInt(pm.environment.get('postId'))));",
+                      "pm.test('language is en', () => pm.expect(json.language).to.equal('en'));",
+                      "pm.test('content is a non-empty string', () => {",
+                      "  pm.expect(json.content).to.be.a('string');",
+                      "  pm.expect(json.content.length).to.be.above(0);",
+                      "});",
+                      "pm.test('cached is a boolean', () => pm.expect(json.cached).to.be.a('boolean'));"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/posts/7/translate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "posts",
+                    "7",
+                    "translate"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "reports",
+          "item": [
+            {
+              "name": "Report a post – success (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "",
+                      "const json = pm.response.json();",
+                      "pm.test('message is Report submitted', () => pm.expect(json.message).to.equal('Report submitted'));",
+                      "",
+                      "pm.test('report object present', () => {",
+                      "  pm.expect(json.report.id).to.be.a('number');",
+                      "  pm.expect(json.report.reason).to.be.a('string');",
+                      "  pm.expect(json.report.status).to.equal('pending');",
+                      "  pm.expect(json.report.postId).to.be.a('number');",
+                      "  pm.expect(json.report.threadId).to.be.null;",
+                      "});",
+                      "",
+                      "pm.environment.set('reportId', String(json.report.id));"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"This post contains offensive language\",\n  \"postId\": {{postId}}\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reports"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Report a thread – success (201)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "const json = pm.response.json();",
+                      "pm.test('threadId set, postId null', () => {",
+                      "  pm.expect(json.report.threadId).to.be.a('number');",
+                      "  pm.expect(json.report.postId).to.be.null;",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{userToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"This thread is spam\",\n  \"threadId\": 383\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reports"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "history",
+          "item": [
+            {
+              "name": "GET - Post 2 version history",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/posts/2/history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "posts",
+                    "2",
+                    "history"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PUT - Edit post 2 (with token)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Actually, it has to be Shearer. 260 Premier League goals!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - Edit someone else's post (expect 403)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer ANOTHER_USERS_TOKEN_HERE"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Trying to edit someone else's post\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - No token (expect 401)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"No token test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "reports",
+          "item": [
+            {
+              "name": "AI verdict written after delay (check reportId)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "// Wait a few seconds for the background AI verdict to land",
+                      "setTimeout(() => {}, 5000);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// This test is best-effort — HF may still be processing",
+                      "if (pm.response.code === 200) {",
+                      "  const r = pm.response.json().report ?? pm.response.json();",
+                      "  pm.test('aiVerdict is a string or null', () => {",
+                      "    pm.expect(r.aiVerdict === null || typeof r.aiVerdict === 'string').to.be.true;",
+                      "  });",
+                      "  pm.test('aiScore is a number or null', () => {",
+                      "    pm.expect(r.aiScore === null || typeof r.aiScore === 'number').to.be.true;",
+                      "  });",
+                      "} else {",
+                      "  pm.test('GET /api/reports/:id endpoint exists', () => {",
+                      "    pm.expect([200, 404]).to.include(pm.response.code);",
+                      "  });",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "reports"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Approve report 1 as admin (expect 200) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/1/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "reports",
+                    "1",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Approve report 1 again (expect 400 already processed) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/1/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "reports",
+                    "1",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Dismiss report 2 as admin (expect 200) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/2/dismiss",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "reports",
+                    "2",
+                    "dismiss"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Approve as regular user (expect 403) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/1/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "reports",
+                    "1",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "users",
+          "item": [
+            {
+              "name": "POST - Ban user 3 as admin (expect 200) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/3/ban",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "3",
+                    "ban"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Ban user 3 again (expect 400 already banned) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/3/ban",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "3",
+                    "ban"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Unban user 3 as admin (expect 200) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/3/unban",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "3",
+                    "unban"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Ban as regular user (expect 403) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/4/ban",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "4",
+                    "ban"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "POST - Admin bans themselves (expect 400) Copy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/5/ban",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "5",
+                    "ban"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appeals",
+      "item": [
+        {
+          "name": "POST - Submit appeal as user 3 (expect 201) Copy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"I was wrongly banned, please review my case\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appeals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appeals"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Submit duplicate appeal (expect 400) Copy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Trying to submit again\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appeals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appeals"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Submit appeal with no token (expect 401) Copy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"No token test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appeals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appeals"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "pollId",
+      "value": ""
+    },
+    {
+      "key": "optionId1",
+      "value": ""
+    },
+    {
+      "key": "optionId2",
+      "value": ""
+    },
+    {
+      "key": "userToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "otherToken",
+      "value": ""
+    },
+    {
+      "key": "otherId",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "adminId",
+      "value": ""
+    }
+  ]
+}

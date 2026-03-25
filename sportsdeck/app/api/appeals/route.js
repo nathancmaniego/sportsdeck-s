@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma/db";
 import { NextResponse } from "next/server";
-import { authenticate } from "@/utils/auth";
+import { authenticateIncludingBanned } from "@/utils/auth";
 // Used Claude AI to help implement this js file
 // // Prompt: Okay next we have to do this part:
 // 2. Moderation (Admin & User)
@@ -17,7 +17,7 @@ import { authenticate } from "@/utils/auth";
 // • POST: User submits an appeal.
 
 export async function POST(request) {
-    const { user, error } = await authenticate(request);
+    const { user, error } = await authenticateIncludingBanned(request);
     if (error) return NextResponse.json({ error }, { status: 401 });
 
     try {

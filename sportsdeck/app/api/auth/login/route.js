@@ -33,13 +33,6 @@ export async function POST(request) {
       )
     }
 
-    if (user.isBanned) {
-      return NextResponse.json(
-        { success: false, error: 'Account is banned' },
-        { status: 403 }
-      )
-    }
-
     const token = generateToken(user)
 
     return NextResponse.json({
@@ -50,7 +43,8 @@ export async function POST(request) {
           id: user.id,
           email: user.email,
           username: user.username,
-          role: user.role
+          role: user.role,
+          isBanned: user.isBanned
         }
       }
     })

@@ -1,9 +1,9 @@
 # ToDO
 
 ## Backend fixes
-[] Login ability
-[] Refresh Token
-[] Logout
+[x] Login ability
+[x] Refresh Token
+[x] Logout
 [] Auto create threads automatically
 [] Daily Digest 
 [] Feed Event/Feed

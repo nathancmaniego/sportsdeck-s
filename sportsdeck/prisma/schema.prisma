@@ -61,6 +61,17 @@ model User {
   followers      Follow[]       @relation("following")
   feedEvents     FeedEvent[]    @relation("feedOwner")
   actedEvents    FeedEvent[]    @relation("feedActor")
+  refreshTokens RefreshToken[]
+
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model OAuthAccount {

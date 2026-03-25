@@ -62,7 +62,6 @@ model User {
   feedEvents     FeedEvent[]    @relation("feedOwner")
   actedEvents    FeedEvent[]    @relation("feedActor")
   refreshTokens RefreshToken[]
-
 }
 
 model RefreshToken {

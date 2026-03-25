@@ -113,8 +113,32 @@ export async function PUT(request, { params }) {
 
     // Build update object — only include fields that were actually provided
     const updateData = {};
+    if (avatar !== undefined) {
+      const allowedDomains = [
+        'lh3.googleusercontent.com',   // Google OAuth avatars
+        'avatars.githubusercontent.com', // GitHub OAuth avatars
+        'res.cloudinary.com',           // if you use Cloudinary
+        'ui-avatars.com',               // generated letter avatars
+      ];
+
+      let isValidAvatar = false;
+      try {
+        const url = new URL(avatar);
+        isValidAvatar = allowedDomains.some(domain => url.hostname === domain);
+      } catch {
+        isValidAvatar = false;
+      }
+
+      if (!isValidAvatar) {
+        return NextResponse.json(
+          { error: 'Avatar must be from a trusted image host' },
+          { status: 400 }
+        );
+      }
+
+      updateData.avatar = avatar;
+    }
     if (username !== undefined) updateData.username = username;
-    if (avatar !== undefined) updateData.avatar = avatar;
     if (favoriteTeamId !== undefined) updateData.favoriteTeamId = favoriteTeamId;
 
     // Check username isn't already taken by someone else

@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/db";
 import { NextResponse } from "next/server";
 import { authenticate } from "@/utils/auth"; // adjust path to wherever your auth file is
+import { createFollowerFeedEvents, createTeamFavoriteFeedEvents } from "@/utils/feedEvent";
 
 // Prompt: Implement GET /api/threads to return a list of threads with optional filtering by title, teamId, matchId, and tag. Implement POST /api/threads to allow authenticated users to create a new thread with a title, content, optional teamId, optional matchId, and optional tags. Ensure proper error handling and validation for both endpoints.
 // Claude Sonnet 4.6
@@ -69,6 +70,17 @@ export async function POST(request) {
                 },
             },
         });
+
+        // Create feed events for followers
+        await createFollowerFeedEvents(user.id, "new_thread", {
+            threadId: newThread.id,
+            groupKey: `thread_${newThread.id}`,
+        });
+
+        // If thread is for a team, also create events for users with that team as favorite
+        if (newThread.teamId) {
+            await createTeamFavoriteFeedEvents(newThread.teamId, user.id, "new_thread", null, `thread_${newThread.id}`);
+        }
 
         return NextResponse.json(newThread, { status: 201 });
     } catch (error) {

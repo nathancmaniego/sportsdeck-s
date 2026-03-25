@@ -18,6 +18,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/db';
 import { getCached } from '@/utils/cache';
 import { fetchMatchesByMatchday } from '@/utils/footballapi';
+import { createTeamFavoriteFeedEvents } from '@/utils/feedEvent';
 
 
 export async function GET(request, { params }) {
@@ -61,6 +62,11 @@ export async function GET(request, { params }) {
       // Find our specific match in the fresh data and update the DB
       const freshMatch = freshMatches.find((m) => m.id === match.externalId);
       if (freshMatch) {
+        const statusChanged = freshMatch.status !== match.status;
+        const scoreChanged = 
+          freshMatch.score.fullTime.home !== match.homeScore ||
+          freshMatch.score.fullTime.away !== match.awayScore;
+
         await prisma.match.update({
           where: { id: matchId },
           data: {
@@ -72,6 +78,16 @@ export async function GET(request, { params }) {
             lastUpdated: new Date(freshMatch.lastUpdated),
           },
         });
+
+        // Create feed events for users with these teams as favorites
+        if (statusChanged || scoreChanged) {
+          const eventType = statusChanged ? "match_status" : "match_score";
+          const groupKey = `match_${matchId}`;
+
+          // Create events for both teams' followers
+          await createTeamFavoriteFeedEvents(match.homeTeamId, 0, eventType, matchId, groupKey);
+          await createTeamFavoriteFeedEvents(match.awayTeamId, 0, eventType, matchId, groupKey);
+        }
 
         // Re-fetch from DB to return updated data
         const updatedMatch = await prisma.match.findUnique({

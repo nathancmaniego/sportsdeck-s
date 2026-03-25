@@ -2,6 +2,7 @@ import { prisma } from "@/prisma/db";
 import { NextResponse } from "next/server";
 import { authenticate } from "@/utils/auth";
 import { scoreToxicity } from "@/utils/huggingface";
+import { createFollowerFeedEvents, createTeamFavoriteFeedEvents } from "@/utils/feedEvent";
 // Used Artificial intelligence for this using Claude AI
 // Prompt: can u help me implement threads/[id]/posts/route.js.
 
@@ -103,6 +104,22 @@ export async function POST(request, { params }) {
                 author: { select: { username: true, avatar: true } }
             }
         });
+
+        // Determine event type
+        const isReply = !!parentId;
+        const eventType = isReply ? "new_reply" : "new_post";
+
+        // Create feed events for followers
+        await createFollowerFeedEvents(user.id, eventType, {
+            threadId: thread.id,
+            postId: newPost.id,
+            groupKey: `thread_${thread.id}`,
+        });
+
+        // If thread is for a team, also create events for users with that team as favorite
+        if (thread.teamId) {
+            await createTeamFavoriteFeedEvents(thread.teamId, user.id, eventType, null, `thread_${thread.id}`);
+        }
 
         // Auto-flag potentially inappropriate content (fire-and-forget)
         autoFlagPost(newPost.id, content);

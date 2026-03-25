@@ -38,20 +38,6 @@ export async function POST(request) {
       )
     }
 
-    // Reject if an active session already exists
-    const existingToken = await prisma.refreshToken.findFirst({
-      where: {
-        userId: user.id,
-        expiresAt: { gt: new Date() },
-      },
-    })
-
-    if (existingToken) {
-      return NextResponse.json(
-        { success: false, error: 'Already logged in' },
-        { status: 409 }
-      )
-    }
 
     // Clean up any expired leftover tokens
     await prisma.refreshToken.deleteMany({ where: { userId: user.id } })

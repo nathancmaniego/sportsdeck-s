@@ -67,6 +67,24 @@ export async function authenticate(request) {
   return { user, error: null }
 }
 
+export async function authenticateIncludingBanned(request) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { user: null, error: 'No token provided' }
+  }
+
+  const token = authHeader.split(' ')[1]
+  const decoded = verifyToken(token)
+  if (!decoded) {
+    return { user: null, error: 'Invalid token' }
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: decoded.id } })
+  if (!user) return { user: null, error: 'User not found' }
+
+  return { user, error: null }
+}
+
 export function isAdmin(user) {
   return user.role === 'admin'
 }

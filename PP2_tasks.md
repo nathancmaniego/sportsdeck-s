@@ -10,11 +10,11 @@
 ### 🔵 Nate
 
 #### Infrastructure
-- [ ] Migrate Prisma schema to PostgreSQL, redo migrations
-- [ ] Write `Dockerfile` for Next.js (production build)
-- [ ] Write `docker-compose.yaml` (Next.js + Postgres + Nginx)
+- [x] Migrate Prisma schema to PostgreSQL, redo migrations
+- [x] Write `Dockerfile` for Next.js (production build)
+- [x] Write `docker-compose.yaml` (Next.js + Postgres + Nginx)
 - [ ] Add Redis standalone cache server to Docker Compose *(+bonus)*
-- [ ] Generate seed data + write `import-data.sh`
+- [x] Generate seed data + write `import-data.sh`
 
 #### Frontend — Matches & League
 - [ ] Matches page — upcoming & recent, team logos, scores

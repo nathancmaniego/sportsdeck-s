@@ -3,7 +3,14 @@
 // mapped to actual API routes found in the Phase 1 audit.
 // Claude claude-4.6-opus-high-thinking
 
-import type { ApiError, AuthResponse, User } from "@/types";
+import type {
+  ApiError,
+  AuthResponse,
+  CreateThreadPollResponse,
+  PollGetResponse,
+  PollVoteResponse,
+  User,
+} from "@/types";
 
 const TOKEN_KEY = "sportsdeck_token";
 const USER_KEY = "sportsdeck_user";
@@ -132,4 +139,36 @@ export async function getMe(): Promise<User | null> {
     clearAuth();
     return null;
   }
+}
+
+export async function getPoll(pollId: number): Promise<PollGetResponse> {
+  return apiFetch<PollGetResponse>(`/api/polls/${pollId}`);
+}
+
+export async function votePoll(
+  pollId: number,
+  optionId: number
+): Promise<PollVoteResponse> {
+  return apiFetch<PollVoteResponse>(`/api/polls/${pollId}/vote`, {
+    method: "POST",
+    body: JSON.stringify({ optionId }),
+  });
+}
+
+export async function createThreadPoll(
+  threadId: number,
+  body: {
+    question: string;
+    options: string[];
+    deadline: string;
+    content?: string;
+  }
+): Promise<CreateThreadPollResponse> {
+  return apiFetch<CreateThreadPollResponse>(
+    `/api/threads/${threadId}/polls`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
 }

@@ -15,6 +15,8 @@
 - [x] Write `docker-compose.yaml` (Next.js + Postgres + Nginx)
 - [ ] Add Redis standalone cache server to Docker Compose *(+bonus)*
 - [x] Generate seed data + write `import-data.sh`
+- [x] Migrate frontend codebase fully to TypeScript *(+bonus)*
+- [x] Write `start.sh` and `stop.sh` scripts
 
 #### Frontend — Matches & League
 - [x] Matches page — upcoming & recent, team logos, scores
@@ -23,7 +25,7 @@
 - [x] Match detail page + auto-created discussion thread link
 
 #### Frontend — Your Backend Features
-- [ ] Polls UI — create, vote, view results, deadline display
+- [x] Polls UI — create, vote, view results, deadline display
 - [ ] Match thread sentiment indicator (overall + per-team)
 - [ ] Translate post/comment button — inline result
 - [ ] Daily digest display on home/dashboard
@@ -38,10 +40,6 @@
 ---
 
 ### 🟢 Partner
-
-#### Infrastructure
-- [ ] Migrate frontend codebase fully to TypeScript *(+bonus)*
-- [ ] Write `start.sh` and `stop.sh` scripts
 
 #### Frontend — Auth & Profile
 - [ ] Landing page — hero section, sports vibe, league imagery

@@ -21,11 +21,12 @@ export async function GET(request, { params }) {
         },
         posts: {
           where: { isHidden: false },
-          include: { 
-            author: { select: { username: true, avatar: true } } 
+          include: {
+            author: { select: { username: true, avatar: true } },
+            poll: { select: { id: true } },
           },
-          orderBy: { createdAt: "asc" }
-        }
+          orderBy: { createdAt: "asc" },
+        },
       }
     });
 

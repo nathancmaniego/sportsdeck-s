@@ -189,6 +189,53 @@ export interface Vote {
   createdAt: string;
 }
 
+/** Shape returned by GET /api/polls/[id] for each option (includes vote counts). */
+export interface PollOptionResult {
+  id: number;
+  text: string;
+  votes: number;
+  percentage: number;
+}
+
+/** Poll payload from GET /api/polls/[id] (formatted by the API). */
+export interface PollDetail {
+  id: number;
+  question: string;
+  deadline: string;
+  isClosed: boolean;
+  totalVotes: number;
+  options: PollOptionResult[];
+  post: {
+    id: number;
+    threadId: number;
+    authorId: number;
+    isHidden: boolean;
+  };
+}
+
+export interface PollGetResponse {
+  poll: PollDetail;
+  userVote: number | null;
+}
+
+export interface PollVoteResponse {
+  message: string;
+  selectedOptionId: number;
+  results: PollOptionResult[];
+  totalVotes: number;
+}
+
+export interface CreateThreadPollResponse {
+  message: string;
+  post: { id: number; content: string; createdAt: string };
+  poll: {
+    id: number;
+    question: string;
+    deadline: string;
+    options: { id: number; text: string }[];
+  };
+}
+
 export interface Report {
   id: number;
   reporterId: number;

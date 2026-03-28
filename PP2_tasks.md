@@ -17,10 +17,10 @@
 - [x] Generate seed data + write `import-data.sh`
 
 #### Frontend — Matches & League
-- [ ] Matches page — upcoming & recent, team logos, scores
-- [ ] League standings/table page
-- [ ] Matchday browser — view matches by matchday/stage
-- [ ] Match detail page + auto-created discussion thread link
+- [x] Matches page — upcoming & recent, team logos, scores
+- [x] League standings/table page
+- [x] Matchday browser — view matches by matchday/stage
+- [x] Match detail page + auto-created discussion thread link
 
 #### Frontend — Your Backend Features
 - [ ] Polls UI — create, vote, view results, deadline display

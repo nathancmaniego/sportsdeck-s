@@ -88,6 +88,7 @@ export interface Match {
   createdAt: string;
   updatedAt: string;
   lastUpdated?: string | null;
+  season?: Pick<Season, "id" | "currentMatchday">;
   homeTeam?: Team;
   awayTeam?: Team;
   thread?: Thread | null;

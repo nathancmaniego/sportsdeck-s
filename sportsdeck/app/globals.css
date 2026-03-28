@@ -114,6 +114,8 @@
   --sd-bg: #f8f8fa;
   --sd-danger: #e53935;
   --sd-danger-muted: rgba(229, 57, 53, 0.1);
+  --sd-europa: #f57c00;
+  --sd-conference: #26a69a;
 }
 
 /* ------------------------------------------------------------------ */
@@ -160,6 +162,8 @@
   --sd-bg: #0d0d0f;
   --sd-danger: #ff5252;
   --sd-danger-muted: rgba(255, 82, 82, 0.10);
+  --sd-europa: #ffa726;
+  --sd-conference: #4db6ac;
 }
 
 /* ------------------------------------------------------------------ */
@@ -234,6 +238,14 @@
 
 .danger-border-left {
   border-left: 3px solid var(--sd-danger);
+}
+
+.europa-border-left {
+  border-left: 3px solid var(--sd-europa);
+}
+
+.conference-border-left {
+  border-left: 3px solid var(--sd-conference);
 }
 
 .gradient-border-bottom {

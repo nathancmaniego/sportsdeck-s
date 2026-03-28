@@ -10,6 +10,8 @@ import type {
   PollGetResponse,
   PollVoteResponse,
   User,
+  UserProfile,
+  FeedResponse,
 } from "@/types";
 
 const TOKEN_KEY = "sportsdeck_token";
@@ -171,4 +173,35 @@ export async function createThreadPoll(
       body: JSON.stringify(body),
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Follow / Activity
+// ---------------------------------------------------------------------------
+
+export async function getUser(userId: number): Promise<UserProfile> {
+  return apiFetch<{ user: UserProfile }>(`/api/users/${userId}`).then(
+    (res) => res.user
+  );
+}
+
+export async function followUser(userId: number): Promise<void> {
+  await apiFetch(`/api/users/${userId}/follow`, { method: "POST" });
+}
+
+export async function unfollowUser(userId: number): Promise<void> {
+  await apiFetch(`/api/users/${userId}/follow`, { method: "DELETE" });
+}
+
+export async function getFeed(
+  userId: number,
+  params?: { page?: number; limit?: number; unreadOnly?: boolean }
+): Promise<FeedResponse> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", params.page.toString());
+  if (params?.limit) query.set("limit", params.limit.toString());
+  if (params?.unreadOnly) query.set("unreadOnly", "true");
+
+  const url = `/api/users/${userId}/feed${query.toString() ? `?${query}` : ""}`;
+  return apiFetch<FeedResponse>(url);
 }

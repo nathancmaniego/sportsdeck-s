@@ -361,3 +361,103 @@ export interface PaginationMeta {
   total?: number;
   hasMore?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Follow / Activity Feed
+// ---------------------------------------------------------------------------
+
+export interface Follow {
+  followerId: number;
+  followingId: number;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  avatar: string | null;
+  createdAt: string;
+  isBanned: boolean;
+  favoriteTeam: {
+    id: number;
+    name: string;
+    shortName: string;
+    tla: string;
+    crestUrl: string;
+  } | null;
+  _count: {
+    followers: number;
+    following: number;
+    threads: number;
+    posts: number;
+  };
+  threads: Array<{
+    id: number;
+    title: string;
+    createdAt: string;
+    team: {
+      id: number;
+      shortName: string;
+      tla: string;
+    };
+  }>;
+  posts: Array<{
+    id: number;
+    content: string;
+    createdAt: string;
+    parentId: number | null;
+    thread: {
+      id: number;
+      title: string;
+    };
+  }>;
+  isFollowedByMe?: boolean;
+}
+
+export interface FeedEventGroup {
+  groupKey: string | null;
+  count: number;
+  type: "new_post" | "new_reply" | "new_match" | "new_thread" | "match_score" | "match_status";
+  isRead: boolean;
+  createdAt: string;
+  actor: {
+    id: number;
+    username: string;
+    avatar: string | null;
+  };
+  thread: {
+    id: number;
+    title: string;
+  } | null;
+  post: {
+    id: number;
+    content: string;
+  } | null;
+  match: {
+    id: number;
+    homeTeam: {
+      id: number;
+      shortName: string;
+      crestUrl: string;
+    };
+    awayTeam: {
+      id: number;
+      shortName: string;
+      crestUrl: string;
+    };
+    homeScore: number | null;
+    awayScore: number | null;
+    status: string;
+  } | null;
+}
+
+export interface FeedResponse {
+  feed: FeedEventGroup[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+  unreadCount: number;
+}

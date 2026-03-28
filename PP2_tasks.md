@@ -29,8 +29,8 @@
 - [ ] Match thread sentiment indicator (overall + per-team)
 - [ ] Translate post/comment button — inline result
 - [ ] Daily digest display on home/dashboard
-- [ ] Activity feed — grouped events, followed users + team updates
-- [ ] Follow / unfollow button + following/followers lists
+- [x] Activity feed — grouped events, followed users + team updates
+- [x] Follow / unfollow button + following/followers lists
 - [ ] Public user profile page + activity chart
 
 #### Deployment

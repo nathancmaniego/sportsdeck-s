@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import useSWR from "swr";
 import {
   Sun,
   Moon,
@@ -18,8 +19,10 @@ import {
   Rss,
   Settings,
   Shield,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { getFeed } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,6 +51,15 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+
+  // Fetch unread count for activity feed badge
+  const { data: feedData } = useSWR(
+    user ? `feed-unread-${user.id}` : null,
+    () => getFeed(user!.id, { page: 1, limit: 1 }),
+    { refreshInterval: 30000 } // refresh every 30s
+  );
+
+  const unreadCount = feedData?.unreadCount ?? 0;
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -83,8 +95,30 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Right: Theme toggle + Auth */}
+        {/* Right: Activity + Theme toggle + Auth */}
         <div className="flex items-center gap-3">
+          {/* Activity Feed (only when logged in) */}
+          {user && (
+            <Link href="/activity" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "text-muted-foreground hover:text-foreground",
+                  isActive("/activity") && "text-[var(--sd-accent)]"
+                )}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[var(--sd-danger)] text-white text-xs font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+                <span className="sr-only">Activity feed</span>
+              </Button>
+            </Link>
+          )}
+
           {/* Dark/Light toggle */}
           <Button
             variant="ghost"
@@ -114,13 +148,18 @@ export default function Navbar() {
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-[var(--sd-surface-raised)] border-[var(--sd-border-subtle)]">
-                  <DropdownMenuItem render={<Link href={`/profile/${user.username}`} />} className="flex items-center gap-2">
+                  <DropdownMenuItem render={<Link href={`/users/${user.id}`} />} className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4" />
                     My Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/feed" />} className="flex items-center gap-2">
-                    <Rss className="h-4 w-4" />
-                    Feed
+                  <DropdownMenuItem render={<Link href="/activity" />} className="flex items-center gap-2 relative">
+                    <Bell className="h-4 w-4" />
+                    Activity
+                    {unreadCount > 0 && (
+                      <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--sd-danger)] text-white text-xs font-bold">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem render={<Link href="/profile" />} className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
@@ -195,18 +234,23 @@ export default function Navbar() {
                 {user ? (
                   <>
                     <Link
-                      href={`/profile/${user.username}`}
+                      href={`/users/${user.id}`}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
                     >
                       <UserIcon className="h-4 w-4" />
                       My Profile
                     </Link>
                     <Link
-                      href="/feed"
+                      href="/activity"
                       className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
                     >
-                      <Rss className="h-4 w-4" />
-                      Feed
+                      <Bell className="h-4 w-4" />
+                      Activity
+                      {unreadCount > 0 && (
+                        <span className="ml-auto px-2 py-0.5 rounded-full bg-[var(--sd-danger)] text-white text-xs font-bold">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
                     </Link>
                     {user.role === "admin" && (
                       <Link

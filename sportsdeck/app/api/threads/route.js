@@ -16,38 +16,137 @@ export async function GET(request){
         const author = searchParams.get("author");
         const theme = searchParams.get("theme");
         const status = searchParams.get("status"); // "open" | "closed"
+        /** match_finished | match_upcoming | community */
+        const threadCategory = searchParams.get("threadCategory");
         const limit = parseInt(searchParams.get("limit")) || 20;
         const offset = parseInt(searchParams.get("offset")) || 0;
 
         const now = new Date();
+        // "Open" for listing: normal window OR match threads for not-yet-finished
+        // fixtures (seed may set openAt in the future until 2 weeks before kick-off).
         const statusWhere =
           status === "open"
             ? {
-                openAt: { lte: now },
-                OR: [{ closeAt: null }, { closeAt: { gt: now } }],
+                OR: [
+                  {
+                    openAt: { lte: now },
+                    OR: [{ closeAt: null }, { closeAt: { gt: now } }],
+                  },
+                  {
+                    isMatchThread: true,
+                    closeAt: { gt: now },
+                    match: { is: { status: { not: "FINISHED" } } },
+                  },
+                ],
               }
             : status === "closed"
-              ? { closeAt: { not: null, lte: now } }
+              ? {
+                  // Truly closed: window ended. Not "closed" if discussion never started yet.
+                  closeAt: { not: null, lte: now },
+                  openAt: { lte: now },
+                }
               : {};
 
+        const categoryWhere =
+          threadCategory === "community"
+            ? { isMatchThread: false }
+            : threadCategory === "match_finished"
+              ? {
+                  isMatchThread: true,
+                  match: { is: { status: "FINISHED" } },
+                }
+              : threadCategory === "match_upcoming"
+                ? {
+                    isMatchThread: true,
+                    match: {
+                      is: {
+                        status: {
+                          in: [
+                            "SCHEDULED",
+                            "TIMED",
+                            "IN_PLAY",
+                            "PAUSED",
+                            "POSTPONED",
+                            "SUSPENDED",
+                          ],
+                        },
+                      },
+                    },
+                  }
+                : {};
+
+        const orderBy =
+          threadCategory === "match_finished"
+            ? { match: { utcDate: "desc" } }
+            : { createdAt: "desc" };
+
+        const threadWhere = {
+            isHidden: false,
+            ...(title && { title: { contains: title, mode: "insensitive" } }),
+            ...(teamId && { teamId: parseInt(teamId) }),
+            ...(matchId && { matchId: parseInt(matchId) }),
+            ...(tag && { tags: { some: { tag: { name: tag } } } }),
+            ...(author && { author: { username: { contains: author, mode: "insensitive" } } }),
+            ...statusWhere,
+            ...categoryWhere,
+        };
+
+        const threadInclude = {
+            author: { select: { username: true, avatar: true } },
+            tags: { include: { tag: true } },
+            team: { select: { id: true, name: true, shortName: true, tla: true, crestUrl: true } },
+            match: {
+              select: {
+                id: true,
+                status: true,
+                utcDate: true,
+                homeScore: true,
+                awayScore: true,
+                matchday: true,
+                homeTeam: { select: { shortName: true, tla: true } },
+                awayTeam: { select: { shortName: true, tla: true } },
+              },
+            },
+            _count: { select: { posts: true } },
+        };
+
+        // Upcoming/live: live first, then soonest kick-off (DB order alone can't express that).
+        if (threadCategory === "match_upcoming") {
+          const rows = await prisma.thread.findMany({
+            where: threadWhere,
+            select: {
+              id: true,
+              match: { select: { utcDate: true, status: true } },
+            },
+          });
+          const isLive = (s) => s === "IN_PLAY" || s === "PAUSED";
+          rows.sort((a, b) => {
+            const al = a.match && isLive(a.match.status) ? 0 : 1;
+            const bl = b.match && isLive(b.match.status) ? 0 : 1;
+            if (al !== bl) return al - bl;
+            const ta = a.match?.utcDate
+              ? new Date(a.match.utcDate).getTime()
+              : Number.MAX_SAFE_INTEGER;
+            const tb = b.match?.utcDate
+              ? new Date(b.match.utcDate).getTime()
+              : Number.MAX_SAFE_INTEGER;
+            return ta - tb;
+          });
+          const pageIds = rows.slice(offset, offset + limit).map((r) => r.id);
+          if (pageIds.length === 0) return NextResponse.json([]);
+          const threads = await prisma.thread.findMany({
+            where: { id: { in: pageIds } },
+            include: threadInclude,
+          });
+          const byId = new Map(threads.map((t) => [t.id, t]));
+          const ordered = pageIds.map((id) => byId.get(id)).filter(Boolean);
+          return NextResponse.json(ordered);
+        }
+
         const threads = await prisma.thread.findMany({
-            where: {
-                isHidden: false,
-                ...(title && { title: { contains: title, mode: "insensitive" } }),
-                ...(teamId && { teamId: parseInt(teamId) }),
-                ...(matchId && { matchId: parseInt(matchId) }),
-                ...(tag && { tags: { some: { tag: { name: tag } } } }),
-                ...(author && { author: { username: { contains: author, mode: "insensitive" } } }),
-                ...statusWhere,
-            },
-            include: {
-                author: { select: { username: true, avatar: true } },
-                tags: { include: { tag: true } },
-                team: { select: { id: true, name: true, shortName: true, tla: true, crestUrl: true } },
-                match: true,
-                _count: { select: { posts: true } }
-            },
-            orderBy: { createdAt: "desc" },
+            where: threadWhere,
+            include: threadInclude,
+            orderBy,
             take: limit,
             skip: offset,
         });

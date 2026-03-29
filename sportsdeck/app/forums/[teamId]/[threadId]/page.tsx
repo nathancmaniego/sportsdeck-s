@@ -7,12 +7,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Pencil, Trash2, CornerDownRight, Clock, Flag } from "lucide-react";
+import { ArrowLeft, MessageSquare, Pencil, Trash2, CornerDownRight, Clock, Flag, Calendar } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { formatDistanceShort } from "@/lib/utils";
+import { formatDistanceShort, formatDate } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import PollWidget from "@/components/polls/PollWidget";
 import CreatePollForm from "@/components/polls/CreatePollForm";
+import SentimentIndicator from "@/components/SentimentIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import ReportDialog from "@/components/ReportDialog";
@@ -32,11 +33,16 @@ type ThreadPost = Post & {
 type ThreadResponse = Thread & {
   posts: ThreadPost[];
   author?: { username: string; avatar?: string | null };
+  match?: {
+    id: number;
+    status?: string;
+    homeTeam?: { shortName: string };
+    awayTeam?: { shortName: string };
+  } | null;
 };
 
 export default function ThreadDetailPage() {
   const params = useParams();
-  const teamId = params.teamId as string;
   const threadIdParam = params.threadId as string;
   const threadId = parseInt(threadIdParam, 10);
   const { user } = useAuth();
@@ -126,18 +132,19 @@ export default function ThreadDetailPage() {
       <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center">
         <p className="font-body text-muted-foreground">{error}</p>
         <Link
-          href={`/forums/${teamId}`}
+          href="/forums"
           className="mt-4 inline-block font-body text-sm font-semibold text-[var(--sd-accent)] hover:underline"
         >
-          Back to forum
+          Back to forums
         </Link>
       </div>
     );
   }
 
   const now = new Date();
+  const discussionNotStartedYet = new Date(thread.openAt) > now;
   const isThreadOpen =
-    new Date(thread.openAt) <= now &&
+    !discussionNotStartedYet &&
     (thread.closeAt == null || new Date(thread.closeAt) > now);
 
   const handlePost = async () => {
@@ -396,11 +403,11 @@ export default function ThreadDetailPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <Link
-        href={`/forums/${teamId}`}
+        href="/forums"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-[var(--sd-accent)] font-body mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to forum
+        Back to forums
       </Link>
 
       <header className="mb-8 border-b border-[var(--sd-border-subtle)] pb-6">
@@ -441,7 +448,30 @@ export default function ThreadDetailPage() {
             />
           </div>
         )}
+        {thread.isMatchThread && thread.match?.id != null && (
+          <Link
+            href={`/matches/${thread.match.id}`}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface-raised)] px-4 py-2.5 text-sm font-display font-bold uppercase tracking-wide text-[var(--sd-accent)] hover:border-[var(--sd-accent)]/40 transition-colors"
+          >
+            <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+            Open match page
+          </Link>
+        )}
+        {discussionNotStartedYet && (
+            <p className="mt-3 font-body text-sm text-muted-foreground">
+              Discussion opens {formatDate(thread.openAt)}.
+            </p>
+          )}
       </header>
+
+      {thread.isMatchThread && (
+        <SentimentIndicator
+          className="mb-8"
+          threadId={thread.id}
+          homeTeamShort={thread.match?.homeTeam?.shortName}
+          awayTeamShort={thread.match?.awayTeam?.shortName}
+        />
+      )}
 
       {user && isThreadOpen && (
         <div className="mb-8">
@@ -449,7 +479,7 @@ export default function ThreadDetailPage() {
         </div>
       )}
 
-      {user && !isThreadOpen && (
+      {user && !isThreadOpen && !discussionNotStartedYet && (
         <div className="mb-8 rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-4">
           <p className="font-body text-sm text-muted-foreground">
             This thread is closed. Polls can only be created on open threads.

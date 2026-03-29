@@ -29,7 +29,8 @@ export type FeedEventType =
   | "new_match"
   | "new_thread"
   | "match_score"
-  | "match_status";
+  | "match_status"
+  | "my_post";
 
 export interface User {
   id: number;
@@ -295,10 +296,12 @@ export interface ThreadSentiment {
   calculatedAt: string;
 }
 
+/** GET /api/digest — includes `fresh` when newly generated this request. */
 export interface DailyDigest {
   id: number;
   content: string;
   date: string;
+  fresh?: boolean;
 }
 
 export interface OAuthAccount {
@@ -415,10 +418,66 @@ export interface UserProfile {
   isFollowedByMe?: boolean;
 }
 
+export interface FollowUser {
+  id: number;
+  username: string;
+  avatar: string | null;
+  favoriteTeamId: number | null;
+  followedAt: string;
+}
+
+/** Row from GET /api/users (discover / search). */
+export interface UserListItem {
+  id: number;
+  username: string;
+  avatar: string | null;
+  favoriteTeamId: number | null;
+  favoriteTeam: {
+    id: number;
+    shortName: string;
+    crestUrl: string;
+    tla: string;
+  } | null;
+  _count: {
+    followers: number;
+    following: number;
+  };
+  isFollowedByMe: boolean;
+}
+
+export interface UserSearchResponse {
+  users: UserListItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface FollowListResponse {
+  followers?: FollowUser[];
+  following?: FollowUser[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface TeamStub {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crestUrl: string;
+}
+
 export interface FeedEventGroup {
   groupKey: string | null;
   count: number;
-  type: "new_post" | "new_reply" | "new_match" | "new_thread" | "match_score" | "match_status";
+  type: "new_post" | "new_reply" | "new_match" | "new_thread" | "match_score" | "match_status" | "my_post";
   isRead: boolean;
   createdAt: string;
   actor: {
@@ -429,6 +488,7 @@ export interface FeedEventGroup {
   thread: {
     id: number;
     title: string;
+    teamId?: number | null;
   } | null;
   post: {
     id: number;
@@ -446,6 +506,7 @@ export interface FeedEventGroup {
       shortName: string;
       crestUrl: string;
     };
+    utcDate: string | null;
     homeScore: number | null;
     awayScore: number | null;
     status: string;

@@ -14,7 +14,7 @@ import { ArrowLeft, Calendar, MapPin, MessageSquare, Hash } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import SentimentIndicator from "@/components/SentimentIndicator";
 import type { Match, MatchStatus } from "@/types";
 
 const STATUS_DISPLAY: Record<MatchStatus, { label: string; className: string }> = {
@@ -268,6 +268,16 @@ export default function MatchDetailPage() {
           </Link>
         )}
       </div>
+
+      {match.thread && (
+        <SentimentIndicator
+          className="mt-6"
+          threadId={match.thread.id}
+          homeTeamShort={home.shortName}
+          awayTeamShort={away.shortName}
+          compact
+        />
+      )}
     </div>
   );
 }

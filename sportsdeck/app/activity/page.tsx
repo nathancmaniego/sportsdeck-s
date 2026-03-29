@@ -2,125 +2,115 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import { getFeed } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ActivityFeed from "@/components/ActivityFeed";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, BellOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChevronLeft, ChevronRight, LayoutDashboard, LogIn } from "lucide-react";
 
 export default function ActivityPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
-  const [unreadOnly, setUnreadOnly] = useState(false);
 
   const { data, error, isLoading } = useSWR(
-    user ? `feed-${user.id}-${page}-${unreadOnly}` : null,
-    () => getFeed(user!.id, { page, limit: 20, unreadOnly })
+    user ? `feed-${user.id}-${page}` : null,
+    () => getFeed(user!.id, { page, limit: 30, unreadOnly: false })
   );
 
+  /* ── Not signed in ─────────────────────────────────────────────────────── */
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card className="border-[var(--sd-border-subtle)] bg-[var(--sd-surface)]">
-          <CardContent className="py-12 text-center">
-            <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="font-body text-muted-foreground mb-4">
-              Sign in to see your activity feed
-            </p>
-            <a href="/login">
-              <Button className="bg-[var(--sd-accent)] text-[var(--sd-bg)] hover:bg-[var(--sd-accent)]/90 font-display font-semibold uppercase tracking-wide text-xs">
-                Sign in
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="h-16 w-16 rounded-full bg-[var(--sd-surface-raised)] flex items-center justify-center mx-auto mb-6">
+            <LayoutDashboard className="h-8 w-8 text-muted-foreground opacity-50" />
+          </div>
+          <h2 className="font-display text-2xl font-bold text-foreground mb-2">
+            Your Feed
+          </h2>
+          <p className="font-body text-sm text-muted-foreground mb-6">
+            Sign in for a stream of what people you follow post, replies to your
+            threads, curated forum activity when that’s thin, and your team’s
+            fixtures and results.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 rounded-md bg-[var(--sd-accent)] px-5 py-2.5 text-sm font-display font-semibold uppercase tracking-wide text-[var(--sd-bg)] hover:bg-[var(--sd-accent)]/90 transition-colors"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign in
+          </Link>
+        </div>
       </div>
     );
   }
 
+  /* ── Signed in ─────────────────────────────────────────────────────────── */
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-display text-4xl font-bold text-foreground mb-2">
-          Activity Feed
-        </h1>
-        <p className="font-body text-muted-foreground">
-          Updates from people and teams you follow
-        </p>
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      {/* Page header */}
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-11 w-11 border-2 border-[var(--sd-accent)]/30">
+            <AvatarImage src={user.avatar ?? undefined} alt={user.username} />
+            <AvatarFallback className="bg-[var(--sd-accent-muted)] text-[var(--sd-accent)] font-display font-bold">
+              {user.username.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground leading-tight">
+              Your Feed
+            </h1>
+            <p className="font-body text-sm text-muted-foreground">
+              Follows, forum picks when it’s quiet, and your favourite team
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href={`/users/${user.id}`}
+          className="text-xs font-body text-muted-foreground hover:text-[var(--sd-accent)] transition-colors"
+        >
+          View profile →
+        </Link>
       </div>
 
-      {/* Filter Tabs */}
-      <Tabs
-        value={unreadOnly ? "unread" : "all"}
-        onValueChange={(v) => {
-          setUnreadOnly(v === "unread");
-          setPage(1);
-        }}
-        className="mb-6"
-      >
-        <TabsList className="w-full sm:w-auto border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)]">
-          <TabsTrigger
-            value="all"
-            className="data-[state=active]:bg-[var(--sd-accent)] data-[state=active]:text-[var(--sd-bg)] font-display font-semibold uppercase tracking-wide text-xs"
-          >
-            <Bell className="h-4 w-4 mr-1" />
-            All Activity
-          </TabsTrigger>
-          <TabsTrigger
-            value="unread"
-            className="data-[state=active]:bg-[var(--sd-accent)] data-[state=active]:text-[var(--sd-bg)] font-display font-semibold uppercase tracking-wide text-xs"
-          >
-            <BellOff className="h-4 w-4 mr-1" />
-            Unread
-            {data?.unreadCount ? (
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--sd-danger)] text-white text-xs font-bold">
-                {data.unreadCount}
-              </span>
-            ) : null}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Feed Content */}
+      {/* Feed */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Card
+        <div className="space-y-1">
+          {[...Array(8)].map((_, i) => (
+            <div
               key={i}
-              className="border-[var(--sd-border-subtle)] bg-[var(--sd-surface)]"
+              className="flex gap-3 items-start px-4 py-3.5"
             >
-              <CardContent className="p-4">
-                <div className="flex gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
           ))}
         </div>
       ) : error ? (
-        <Card className="border-[var(--sd-border-subtle)] bg-[var(--sd-surface)]">
-          <CardContent className="py-12 text-center">
-            <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="font-body text-muted-foreground">
-              {error.message || "Failed to load activity"}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12 text-muted-foreground font-body text-sm">
+          {error.message || "Failed to load feed. Try refreshing."}
+        </div>
       ) : (
         <>
-          <ActivityFeed events={data?.feed || []} />
+          <ActivityFeed
+            events={data?.feed ?? []}
+            viewerId={user.id}
+            viewerFavoriteTeamId={
+              user.favoriteTeamId ?? user.favoriteTeam?.id ?? null
+            }
+          />
 
           {/* Pagination */}
           {data && data.pagination.pages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
+            <div className="flex items-center justify-center gap-4 mt-10">
               <Button
                 variant="outline"
                 size="sm"
@@ -129,10 +119,10 @@ export default function ActivityPage() {
                 className="border-[var(--sd-border-subtle)]"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                Newer
               </Button>
 
-              <span className="font-body text-sm text-muted-foreground">
+              <span className="font-body text-xs text-muted-foreground">
                 Page {page} of {data.pagination.pages}
               </span>
 
@@ -143,7 +133,7 @@ export default function ActivityPage() {
                 onClick={() => setPage((p) => p + 1)}
                 className="border-[var(--sd-border-subtle)]"
               >
-                Next
+                Older
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

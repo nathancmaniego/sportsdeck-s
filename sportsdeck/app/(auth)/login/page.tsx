@@ -1,5 +1,5 @@
 // Prompt: Login page — react-hook-form + zod validation (email, password min 6).
-// Calls useAuth().login(), redirects to /feed on success. Inline field errors,
+// Calls useAuth().login(), redirects to /activity on success. Inline field errors,
 // loading spinner, error toast via sonner. Split layout: left panel with bold
 // typographic treatment, right panel with form using surface tokens.
 // Claude claude-4.6-opus-high-thinking
@@ -44,7 +44,7 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       toast.success("Welcome back!");
-      router.push("/feed");
+      router.push("/activity");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Login failed. Try again.";

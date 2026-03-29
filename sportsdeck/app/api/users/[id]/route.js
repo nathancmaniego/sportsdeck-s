@@ -27,6 +27,7 @@ export async function GET(request, { params }) {
         id: true,
         username: true,
         avatar: true,
+        favoriteTeamId: true,
         createdAt: true,
         isBanned: true,
         favoriteTeam: {
@@ -43,7 +44,7 @@ export async function GET(request, { params }) {
         threads: {
           where: { isHidden: false },
           orderBy: { createdAt: 'desc' },
-          take: 10,
+          take: 25,
           select: {
             id: true,
             title: true,
@@ -54,7 +55,7 @@ export async function GET(request, { params }) {
         posts: {
           where: { isHidden: false },
           orderBy: { createdAt: 'desc' },
-          take: 10,
+          take: 40,
           select: {
             id: true,
             content: true,
@@ -127,12 +128,26 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Check favoriteTeamId is a valid team
-    if (favoriteTeamId) {
-      const team = await prisma.team.findUnique({ where: { id: favoriteTeamId } });
-      if (!team) {
-        return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+    // Check favoriteTeamId is a valid team (or null to clear)
+    let teamForCrest = null;
+    if (favoriteTeamId !== undefined) {
+      if (favoriteTeamId === null) {
+        // clearing favourite team — no crest sync
+      } else {
+        teamForCrest = await prisma.team.findUnique({ where: { id: favoriteTeamId } });
+        if (!teamForCrest) {
+          return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+        }
       }
+    }
+
+    // Favourite team set/changed without an explicit avatar field → use team crest
+    if (
+      teamForCrest &&
+      favoriteTeamId !== undefined &&
+      !Object.prototype.hasOwnProperty.call(body, 'avatar')
+    ) {
+      updateData.avatar = teamForCrest.crestUrl ?? null;
     }
 
     const updatedUser = await prisma.user.update({

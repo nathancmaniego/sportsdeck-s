@@ -18,7 +18,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/db';
 import { getCached } from '@/utils/cache';
 import { fetchMatchesByMatchday } from '@/utils/footballapi';
-import { createTeamFavoriteFeedEvents } from '@/utils/feedEvent';
+import { createTeamFavoriteFeedEvents, getSystemActorForFeed } from '@/utils/feedEvent';
 
 
 export async function GET(request, { params }) {
@@ -83,10 +83,23 @@ export async function GET(request, { params }) {
         if (statusChanged || scoreChanged) {
           const eventType = statusChanged ? "match_status" : "match_score";
           const groupKey = `match_${matchId}`;
-
-          // Create events for both teams' followers
-          await createTeamFavoriteFeedEvents(match.homeTeamId, 0, eventType, matchId, groupKey);
-          await createTeamFavoriteFeedEvents(match.awayTeamId, 0, eventType, matchId, groupKey);
+          const systemActor = await getSystemActorForFeed();
+          if (systemActor) {
+            await createTeamFavoriteFeedEvents(
+              match.homeTeamId,
+              systemActor.id,
+              eventType,
+              matchId,
+              groupKey
+            );
+            await createTeamFavoriteFeedEvents(
+              match.awayTeamId,
+              systemActor.id,
+              eventType,
+              matchId,
+              groupKey
+            );
+          }
         }
 
         // Re-fetch from DB to return updated data

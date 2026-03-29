@@ -7,14 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  MessageSquare,
-  Pencil,
-  Trash2,
-  CornerDownRight,
-  Calendar,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare, Pencil, Trash2, CornerDownRight, Clock, Flag, Calendar } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { formatDistanceShort, formatDate } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -23,9 +16,15 @@ import CreatePollForm from "@/components/polls/CreatePollForm";
 import SentimentIndicator from "@/components/SentimentIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import ReportDialog from "@/components/ReportDialog";
 import type { Thread, Post } from "@/types";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 type ThreadPost = Post & {
+  version: number;
   poll?: { id: number } | null;
   author?: { username: string; avatar?: string | null };
   replies?: ThreadPost[];
@@ -60,6 +59,9 @@ export default function ThreadDetailPage() {
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
   const [mutatingPostId, setMutatingPostId] = useState<number | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [postHistory, setPostHistory] = useState<{ content: string; editedAt: string }[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const buildPostTree = useCallback((flat: ThreadPost[]) => {
     const nodes = new Map<number, ThreadPost>();
@@ -228,6 +230,19 @@ export default function ThreadDetailPage() {
     }
   };
 
+  const fetchPostHistory = async (postId: number): Promise<void> => {
+    setLoadingHistory(true);
+    try {
+      const response = await apiFetch<{ history: { content: string; editedAt: string }[] }>(`/api/posts/${postId}/history`);
+      setPostHistory(response.history);
+      setHistoryDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch post history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const renderPost = (post: ThreadPost, depth: number) => {
     const isOwner = user?.id === post.authorId;
     const canEdit = !!user && isOwner;
@@ -296,6 +311,9 @@ export default function ThreadDetailPage() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {user && !isOwner && (
+                <ReportDialog target={{ type: "post", id: post.id }} />
+              )}
             </div>
           </div>
 
@@ -332,6 +350,18 @@ export default function ThreadDetailPage() {
             </>
           )}
 
+          {post.version > 1 && (
+            <div className="mt-3 flex items-center gap-1">
+              <button
+                onClick={() => fetchPostHistory(post.id)}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-[var(--sd-accent)] hover:bg-[var(--sd-surface-raised)] transition-colors"
+              >
+                <Clock className="h-3 w-3" />
+                edited · view history
+              </button>
+            </div>
+          )}
+
           {user && isThreadOpen && showReplyBox && (
             <div className="mt-4 rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface-raised)] p-3">
               <p className="font-body text-xs text-muted-foreground mb-2">
@@ -365,6 +395,7 @@ export default function ThreadDetailPage() {
             {post.replies.map((r) => renderPost(r, depth + 1))}
           </div>
         )}
+
       </div>
     );
   };
@@ -404,6 +435,19 @@ export default function ThreadDetailPage() {
           )}
           {formatDistanceShort(thread.createdAt)}
         </p>
+        {user && user.id !== thread.authorId && (
+          <div className="mt-3">
+            <ReportDialog
+              target={{ type: "thread", id: thread.id, label: `"${thread.title}"` }}
+              trigger={
+                <button className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-[var(--sd-danger)] hover:bg-[var(--sd-surface-raised)] transition-colors">
+                  <Flag className="h-3 w-3" />
+                  Report thread
+                </button>
+              }
+            />
+          </div>
+        )}
         {thread.isMatchThread && thread.match?.id != null && (
           <Link
             href={`/matches/${thread.match.id}`}
@@ -474,6 +518,30 @@ export default function ThreadDetailPage() {
           </p>
         )}
       </section>
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <h2 className="font-display text-base font-bold uppercase tracking-wide mb-4">Post History</h2>
+          {loadingHistory ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : postHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No edit history available for this post.</p>
+          ) : (
+            <ul className="space-y-3 max-h-80 overflow-y-auto">
+              {postHistory.map((edit, index) => (
+                <li key={index} className="rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface-raised)] p-3">
+                  <p className="text-sm font-body whitespace-pre-wrap">{edit.content}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Edited at: {new Date(edit.editedAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

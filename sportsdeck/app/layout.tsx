@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
+import { BannedGate } from "@/components/BannedGate";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -43,8 +44,10 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
-            <Navbar />
-            <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+            <BannedGate>
+              <Navbar />
+              <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+            </BannedGate>
             <Toaster
               position="bottom-right"
               toastOptions={{

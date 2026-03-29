@@ -37,8 +37,8 @@ export async function GET(request, { params }) {
           select: {
             followers: true,
             following: true,
-            threads: true,
-            posts: true,
+            threads: { where: { isHidden: false } },
+            posts: { where: { isHidden: false } },
           }
         },
         threads: {

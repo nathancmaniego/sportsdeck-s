@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FollowButton from "@/components/FollowButton";
+import ReportDialog from "@/components/ReportDialog";
 import type { FollowUser, TeamStub } from "@/types";
 import {
   User,
@@ -282,8 +283,8 @@ export default function UserProfilePage({
 }) {
   const { id } = use(params);
   const userId = parseInt(id);
-  const { user: authUser, refreshUser } = useAuth();
-  const isOwner = authUser?.id === userId;
+  const { user: me, refreshUser } = useAuth();
+  const isOwner = me?.id === userId;
 
   const {
     data: profile,
@@ -465,6 +466,11 @@ export default function UserProfilePage({
                   </div>
                 </div>
 
+                {!isOwner && (
+                  <ReportDialog
+                    target={{ type: "user", id: userId, label: profile.username }}
+                  />
+                )}
                 {profile.favoriteTeam && (
                   <Link
                     href={`/forums/${profile.favoriteTeam.id}`}

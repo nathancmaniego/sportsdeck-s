@@ -42,9 +42,10 @@ export async function GET(req) {
     prisma.report.findMany({
       where: { status },
       include: {
-        reporter: { select: { id: true, username: true } },
-        post:     { select: { id: true, content: true, authorId: true } },
-        thread:   { select: { id: true, title: true } },
+        reporter:     { select: { id: true, username: true } },
+        post:         { select: { id: true, content: true, authorId: true, threadId: true } },
+        thread:       { select: { id: true, title: true, teamId: true } },
+        reportedUser: { select: { id: true, username: true, isBanned: true } },
       },
       orderBy: [
         { aiScore: "desc" },   // highest toxicity first

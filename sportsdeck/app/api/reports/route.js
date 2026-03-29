@@ -1,8 +1,5 @@
 // app/api/reports/route.js
-// Prompt: POST endpoint to submit a report on a post or thread. After saving,
-// asynchronously generate an AI toxicity verdict via Hugging Face and store it
-// on the Report record. Returns the report immediately; verdict is added in the
-// background so the response is fast.
+// POST endpoint to submit a report on a post, thread, or user.
 // Claude Sonnet 4.6
 
 import { NextResponse } from "next/server";
@@ -15,18 +12,16 @@ import { scoreToxicity } from "@/utils/huggingface";
  *
  * Body:
  *   {
- *     reason   : string          // reporter's reason
- *     postId   : number?         // report a specific post
- *     threadId : number?         // report a whole thread
+ *     reason         : string   // reporter's reason
+ *     postId         : number?  // report a specific post
+ *     threadId       : number?  // report a whole thread
+ *     reportedUserId : number?  // report a user
  *   }
  *
- * One of postId or threadId must be provided (not both).
+ * Exactly one of postId, threadId, or reportedUserId must be provided.
  *
  * Response (201):
- *   { message, report: { id, reason, status, postId, threadId, createdAt } }
- *
- * AI verdict is written to the report asynchronously — it will appear on the
- * record within a few seconds and is visible when admins fetch the report.
+ *   { message, report: { id, reason, status, postId, threadId, reportedUserId, createdAt } }
  */
 export async function POST(req) {
   const { user, error } = await authenticate(req);
@@ -39,7 +34,7 @@ export async function POST(req) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { reason, postId, threadId } = body;
+  const { reason, postId, threadId, reportedUserId } = body;
 
   // -------------------------------------------------------------------------
   // Validation
@@ -47,17 +42,21 @@ export async function POST(req) {
   if (!reason || typeof reason !== "string" || reason.trim() === "")
     return NextResponse.json({ error: "reason is required" }, { status: 400 });
 
-  if (!postId && !threadId)
+  const targets = [postId, threadId, reportedUserId].filter(Boolean);
+  if (targets.length === 0)
     return NextResponse.json(
-      { error: "Either postId or threadId must be provided" },
+      { error: "One of postId, threadId, or reportedUserId must be provided" },
+      { status: 400 }
+    );
+  if (targets.length > 1)
+    return NextResponse.json(
+      { error: "Provide only one of postId, threadId, or reportedUserId" },
       { status: 400 }
     );
 
-  if (postId && threadId)
-    return NextResponse.json(
-      { error: "Provide either postId or threadId, not both" },
-      { status: 400 }
-    );
+  // Cannot report yourself
+  if (reportedUserId && parseInt(reportedUserId) === user.id)
+    return NextResponse.json({ error: "You cannot report yourself" }, { status: 400 });
 
   // -------------------------------------------------------------------------
   // Verify target exists
@@ -74,35 +73,45 @@ export async function POST(req) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
+  if (reportedUserId) {
+    const target = await prisma.user.findUnique({ where: { id: parseInt(reportedUserId) } });
+    if (!target)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   // -------------------------------------------------------------------------
   // Create the report immediately (no AI score yet)
   // -------------------------------------------------------------------------
   const report = await prisma.report.create({
     data: {
-      reporterId: user.id,
-      reason:     reason.trim(),
-      status:     "pending",
-      postId:     postId   ? parseInt(postId)   : null,
-      threadId:   threadId ? parseInt(threadId) : null,
+      reporterId:     user.id,
+      reason:         reason.trim(),
+      status:         "pending",
+      postId:         postId         ? parseInt(postId)         : null,
+      threadId:       threadId       ? parseInt(threadId)       : null,
+      reportedUserId: reportedUserId ? parseInt(reportedUserId) : null,
     },
   });
 
-  // -------------------------------------------------------------------------
-  // Fire-and-forget: generate AI verdict asynchronously
-  // The response is returned immediately; the DB record is updated in the bg.
-  // -------------------------------------------------------------------------
-  generateAndStoreVerdict(report.id, postId ? parseInt(postId) : null, threadId ? parseInt(threadId) : null);
+  // Fire-and-forget AI verdict
+  generateAndStoreVerdict(
+    report.id,
+    postId         ? parseInt(postId)   : null,
+    threadId       ? parseInt(threadId) : null,
+    reportedUserId ? parseInt(reportedUserId) : null,
+  );
 
   return NextResponse.json(
     {
       message: "Report submitted",
       report: {
-        id:        report.id,
-        reason:    report.reason,
-        status:    report.status,
-        postId:    report.postId,
-        threadId:  report.threadId,
-        createdAt: report.createdAt,
+        id:             report.id,
+        reason:         report.reason,
+        status:         report.status,
+        postId:         report.postId,
+        threadId:       report.threadId,
+        reportedUserId: report.reportedUserId,
+        createdAt:      report.createdAt,
       },
     },
     { status: 201 }
@@ -111,14 +120,9 @@ export async function POST(req) {
 
 
 // ---------------------------------------------------------------------------
-// Background helper — runs after response is sent
+// Background helper
 // ---------------------------------------------------------------------------
-
-/**
- * Fetches the reported content, scores it for toxicity, and writes the
- * aiVerdict + aiScore back onto the Report row.
- */
-async function generateAndStoreVerdict(reportId, postId, threadId) {
+async function generateAndStoreVerdict(reportId, postId, threadId, reportedUserId) {
   try {
     let textToScore = "";
 
@@ -129,13 +133,20 @@ async function generateAndStoreVerdict(reportId, postId, threadId) {
       });
       textToScore = post?.content ?? "";
     } else if (threadId) {
-      // Score the first (top-level) post of the thread as a representative sample
       const topPost = await prisma.post.findFirst({
         where: { threadId, parentId: null, isHidden: false },
         orderBy: { createdAt: "asc" },
         select: { content: true },
       });
       textToScore = topPost?.content ?? "";
+    } else if (reportedUserId) {
+      // Score the user's most recent post as a representative sample
+      const recent = await prisma.post.findFirst({
+        where: { authorId: reportedUserId, isHidden: false },
+        orderBy: { createdAt: "desc" },
+        select: { content: true },
+      });
+      textToScore = recent?.content ?? "";
     }
 
     if (!textToScore) return;
@@ -144,14 +155,11 @@ async function generateAndStoreVerdict(reportId, postId, threadId) {
 
     await prisma.report.update({
       where: { id: reportId },
-      data: {
-        aiVerdict: verdict,
-        aiScore:   score,
-      },
+      data: { aiVerdict: verdict, aiScore: score },
     });
   } catch (err) {
-    // Non-fatal — admins just won't see a verdict for this report
     console.error("[Reports] generateAndStoreVerdict failed:", err.message);
   }
 }
+
 

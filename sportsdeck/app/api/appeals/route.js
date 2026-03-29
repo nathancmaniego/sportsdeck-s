@@ -16,6 +16,23 @@ import { authenticateIncludingBanned } from "@/utils/auth";
 // • app/api/appeals/route.js
 // • POST: User submits an appeal.
 
+/**
+ * GET /api/appeals
+ * Returns the current user's most recent appeal (for banned users to see status/denial message).
+ */
+export async function GET(request) {
+    const { user, error } = await authenticateIncludingBanned(request);
+    if (error) return NextResponse.json({ error }, { status: 401 });
+
+    const appeal = await prisma.appeal.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, status: true, reason: true, adminMessage: true, createdAt: true },
+    });
+
+    return NextResponse.json({ appeal });
+}
+
 export async function POST(request) {
     const { user, error } = await authenticateIncludingBanned(request);
     if (error) return NextResponse.json({ error }, { status: 401 });

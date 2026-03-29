@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FollowButton from "@/components/FollowButton";
+import ReportDialog from "@/components/ReportDialog";
+import { useAuth } from "@/context/AuthContext";
 import {
   User,
   Calendar,
@@ -28,6 +30,7 @@ export default function UserProfilePage({
 }) {
   const { id } = use(params);
   const userId = parseInt(id);
+  const { user: me } = useAuth();
 
   const { data: profile, error, mutate } = useSWR(
     userId ? `user-${userId}` : null,
@@ -118,6 +121,11 @@ export default function UserProfilePage({
                   onFollowChange={handleFollowChange}
                   className="bg-[var(--sd-accent)] text-[var(--sd-bg)] hover:bg-[var(--sd-accent)]/90 font-display font-semibold uppercase tracking-wide text-xs"
                 />
+                {me && me.id !== userId && (
+                  <ReportDialog
+                    target={{ type: "user", id: userId, label: profile.username }}
+                  />
+                )}
               </div>
 
               {profile.favoriteTeam && (

@@ -52,18 +52,19 @@ model User {
   updatedAt      DateTime  @updatedAt
 
   // Relations
-  favoriteTeam   Team?          @relation(fields: [favoriteTeamId], references: [id])
-  oauthAccounts  OAuthAccount[]
-  threads        Thread[]
-  posts          Post[]
-  votes          Vote[]
-  reports        Report[]
-  appeals        Appeal[]
-  following      Follow[]       @relation("follower")
-  followers      Follow[]       @relation("following")
-  feedEvents     FeedEvent[]    @relation("feedOwner")
-  actedEvents    FeedEvent[]    @relation("feedActor")
-  refreshTokens RefreshToken[]
+  favoriteTeam       Team?          @relation(fields: [favoriteTeamId], references: [id])
+  oauthAccounts      OAuthAccount[]
+  threads            Thread[]
+  posts              Post[]
+  votes              Vote[]
+  reports            Report[]       @relation("reporter")
+  reportedIn         Report[]       @relation("reportedUser")
+  appeals            Appeal[]
+  following          Follow[]       @relation("follower")
+  followers          Follow[]       @relation("following")
+  feedEvents         FeedEvent[]    @relation("feedOwner")
+  actedEvents        FeedEvent[]    @relation("feedActor")
+  refreshTokens      RefreshToken[]
 }
 
 model RefreshToken {
@@ -313,29 +314,32 @@ model Vote {
 // ---------------------------------------------------------------------------
 
 model Report {
-  id         Int      @id @default(autoincrement())
-  reporterId Int
-  reason     String
-  status     String   @default("pending") // "pending" | "dismissed" | "approved"
-  postId     Int?
-  threadId   Int?
-  aiVerdict  String?  // AI-generated verdict text
-  aiScore    Float?   // toxicity score (0.0 – 1.0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  reporterId       Int
+  reason           String
+  status           String   @default("pending") // "pending" | "dismissed" | "approved"
+  postId           Int?
+  threadId         Int?
+  reportedUserId   Int?
+  aiVerdict        String?  // AI-generated verdict text
+  aiScore          Float?   // toxicity score (0.0 – 1.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  reporter   User     @relation(fields: [reporterId], references: [id])
-  post       Post?    @relation(fields: [postId], references: [id])
-  thread     Thread?  @relation(fields: [threadId], references: [id])
+  reporter         User     @relation("reporter", fields: [reporterId], references: [id])
+  post             Post?    @relation(fields: [postId], references: [id])
+  thread           Thread?  @relation(fields: [threadId], references: [id])
+  reportedUser     User?    @relation("reportedUser", fields: [reportedUserId], references: [id])
 }
 
 model Appeal {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  reason    String
-  status    String   @default("pending") // "pending" | "approved" | "rejected"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  reason       String
+  status       String   @default("pending") // "pending" | "approved" | "rejected"
+  adminMessage String?  // message from admin when appeal is rejected
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id])
 }

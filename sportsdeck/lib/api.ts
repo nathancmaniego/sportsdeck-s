@@ -80,8 +80,17 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    // If the token is expired/invalid, sign out locally immediately.
-    if (res.status === 401) {
+    let message = `Request failed with status ${res.status}`;
+    try {
+      const body = await res.json();
+      message = body.error || body.message || message;
+    } catch {
+      // keep default message
+    }
+
+    // Sign out on 401 only if it's NOT a ban — banned users stay signed in
+    // so they can still reach the appeal flow.
+    if (res.status === 401 && message !== "User is banned") {
       try {
         clearAuth();
         broadcastAuthChange();
@@ -90,13 +99,6 @@ export async function apiFetch<T>(
       }
     }
 
-    let message = `Request failed with status ${res.status}`;
-    try {
-      const body = await res.json();
-      message = body.error || body.message || message;
-    } catch {
-      // keep default message
-    }
     throw new ApiRequestError({ status: res.status, message });
   }
 

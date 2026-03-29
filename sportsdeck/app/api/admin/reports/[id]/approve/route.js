@@ -57,6 +57,13 @@ export async function POST(request, { params }) {
             });
         }
 
+        if (report.reportedUserId) {
+            await prisma.user.update({
+                where: { id: report.reportedUserId },
+                data: { isBanned: true }
+            });
+        }
+
         return NextResponse.json({ message: "Report approved, content hidden", report: updatedReport });
     } catch (error) {
         console.error(error);

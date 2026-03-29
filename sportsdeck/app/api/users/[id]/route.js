@@ -27,6 +27,7 @@ export async function GET(request, { params }) {
         id: true,
         username: true,
         avatar: true,
+        role: true,
         favoriteTeamId: true,
         createdAt: true,
         isBanned: true,

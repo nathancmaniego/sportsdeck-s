@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import TranslateToEnglish from '@/components/TranslateButton';
 import type { Thread, Post, User } from '@/types';
 
 type PostWithDetails = Post & {
@@ -77,9 +77,11 @@ export default function ThreadDetailPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">
-          {thread.title}
-        </h1>
+        <TranslateToEnglish
+          mode="text"
+          sourceText={thread.title}
+          tone="title"
+        />
         <p className="text-sm text-muted-foreground">
           By {thread.author.username} · {formatDistanceShort(thread.createdAt)}
         </p>
@@ -95,9 +97,13 @@ export default function ThreadDetailPage() {
               {post.author?.username || 'Unknown Author'} ·{' '}
               {post.createdAt ? formatDistanceShort(post.createdAt) : 'Unknown Date'}
             </p>
-            <p className="font-body text-base text-foreground mt-2">
-              {post.content}
-            </p>
+            <div className="mt-2">
+              <TranslateToEnglish
+                mode="post"
+                postId={post.id}
+                sourceText={post.content}
+              />
+            </div>
           </div>
         ))}
       </div>

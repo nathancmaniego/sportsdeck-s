@@ -286,6 +286,33 @@ export async function createThreadPoll(
   );
 }
 
+export type TranslatePostResponse = {
+  postId: number;
+  language: string;
+  content: string;
+  cached: boolean;
+};
+
+/** Cached in Translation table per post + language "en". */
+export async function translatePostToEnglish(
+  postId: number
+): Promise<TranslatePostResponse> {
+  return apiFetch<TranslatePostResponse>(`/api/posts/${postId}/translate`, {
+    method: "POST",
+  });
+}
+
+/** Stateless; for thread titles and other non-post text. */
+export async function translatePlainText(text: string): Promise<{
+  content: string;
+  language: string;
+}> {
+  return apiFetch<{ content: string; language: string }>("/api/translate", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Follow / Activity
 // ---------------------------------------------------------------------------

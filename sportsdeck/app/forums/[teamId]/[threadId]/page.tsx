@@ -17,6 +17,7 @@ import SentimentIndicator from "@/components/SentimentIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import ReportDialog from "@/components/ReportDialog";
+import TranslateToEnglish from "@/components/TranslateButton";
 import type { Thread, Post } from "@/types";
 import {
   Dialog,
@@ -339,9 +340,11 @@ export default function ThreadDetailPage() {
             </>
           ) : (
             <>
-              <p className="font-body text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                {post.content}
-              </p>
+              <TranslateToEnglish
+                mode="post"
+                postId={post.id}
+                sourceText={post.content}
+              />
               {post.poll?.id != null && (
                 <div className="mt-4">
                   <PollWidget pollId={post.poll.id} />
@@ -417,9 +420,11 @@ export default function ThreadDetailPage() {
             Thread
           </span>
         </div>
-        <h1 className="font-display text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">
-          {thread.title}
-        </h1>
+        <TranslateToEnglish
+          mode="text"
+          sourceText={thread.title}
+          tone="title"
+        />
         <p className="mt-2 text-sm text-muted-foreground font-body">
           {thread.author?.username && (
             <>

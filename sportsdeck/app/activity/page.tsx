@@ -32,8 +32,9 @@ export default function ActivityPage() {
             Your Feed
           </h2>
           <p className="font-body text-sm text-muted-foreground mb-6">
-            Sign in to see posts from people you follow, replies to your threads,
-            and live updates for your favourite team.
+            Sign in for a stream of what people you follow post, replies to your
+            threads, curated forum activity when that’s thin, and your team’s
+            fixtures and results.
           </p>
           <Link
             href="/login"
@@ -64,7 +65,7 @@ export default function ActivityPage() {
               Your Feed
             </h1>
             <p className="font-body text-sm text-muted-foreground">
-              Replies, followed users &amp; your favourite team
+              Follows, forum picks when it’s quiet, and your favourite team
             </p>
           </div>
         </div>

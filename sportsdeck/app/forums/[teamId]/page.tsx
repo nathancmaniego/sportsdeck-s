@@ -1,22 +1,21 @@
-// Prompt: Team Forum page — threads specific to one team
-// Claude claude-4.6-opus-high-thinking
-'use client'
+// Prompt: Team Forum page — threads for one team with match / fan filters.
+"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, MessageSquare } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { formatDistanceShort } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import type { Thread, Team, Tag } from "@/types";
+import { ForumThreadCard } from "@/components/ForumThreadCard";
+import type { ThreadCategoryFilter } from "@/lib/threadDisplay";
+import type { Thread, Team, Match } from "@/types";
 
 type ThreadWithDetails = Thread & {
   author?: { username: string; avatar?: string | null };
-  tags?: { tag: Tag }[];
+  match?: Match | null;
   _count?: { posts: number };
 };
 
@@ -28,6 +27,8 @@ export default function TeamForumPage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<"" | "open" | "closed">("");
+  const [threadCategory, setThreadCategory] =
+    useState<ThreadCategoryFilter>("");
 
   const loadTeam = useCallback(async () => {
     if (teamId === "general") {
@@ -52,6 +53,9 @@ export default function TeamForumPage() {
       if (selectedStatus) {
         params.set("status", selectedStatus);
       }
+      if (threadCategory) {
+        params.set("threadCategory", threadCategory);
+      }
 
       const data = await apiFetch<ThreadWithDetails[]>(
         `/api/threads?${params.toString()}`
@@ -62,7 +66,7 @@ export default function TeamForumPage() {
     } finally {
       setLoading(false);
     }
-  }, [teamId, selectedStatus]);
+  }, [teamId, selectedStatus, threadCategory]);
 
   useEffect(() => {
     loadTeam();
@@ -79,30 +83,29 @@ export default function TeamForumPage() {
         Back to all forums
       </Link>
 
-      {/* Header */}
-      <header className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="mb-8 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           {team?.crestUrl && (
             <img
               src={team.crestUrl}
               alt={team.shortName}
-              className="h-12 w-12 object-contain"
+              className="h-12 w-12 object-contain shrink-0"
             />
           )}
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-[var(--sd-accent)] mb-1">
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4 shrink-0" />
               <span className="font-display text-xs font-bold uppercase tracking-widest">
                 Forum
               </span>
             </div>
-            <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">
+            <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight sm:text-3xl truncate">
               {team ? team.shortName : "General Discussion"}
             </h1>
           </div>
         </div>
         {user && (
-          <Link href="/threads/new">
+          <Link href="/threads/new" className="shrink-0">
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
               New Thread
@@ -111,9 +114,51 @@ export default function TeamForumPage() {
         )}
       </header>
 
-      {/* Thread List */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-6 space-y-4 rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-4">
+        <div>
+          <span className="font-display text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">
+            Thread type
+          </span>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {(
+              [
+                { value: "" as const, label: "All" },
+                { value: "match_finished" as const, label: "Match · finished" },
+                {
+                  value: "match_upcoming" as const,
+                  label: "Match · upcoming & live",
+                },
+                { value: "community" as const, label: "Fan threads" },
+              ] satisfies { value: ThreadCategoryFilter; label: string }[]
+            ).map(({ value, label }) => (
+              <label
+                key={value || "all"}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-body sm:text-sm ${
+                  threadCategory === value
+                    ? "border-[var(--sd-accent)] bg-[var(--sd-accent)]/10"
+                    : "border-[var(--sd-border-subtle)] bg-[var(--sd-surface-raised)]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="teamThreadCat"
+                  className="sr-only"
+                  checked={threadCategory === value}
+                  onChange={() => setThreadCategory(value)}
+                />
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    threadCategory === value
+                      ? "bg-[var(--sd-accent)]"
+                      : "bg-muted-foreground/30"
+                  }`}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
           <span className="font-body text-sm text-muted-foreground">Show</span>
           <select
             value={selectedStatus}
@@ -122,7 +167,7 @@ export default function TeamForumPage() {
             }
             className="rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] px-3 py-2 text-sm font-body"
           >
-            <option value="">All Threads</option>
+            <option value="">All threads</option>
             <option value="open">Open</option>
             <option value="closed">Closed</option>
           </select>
@@ -144,35 +189,11 @@ export default function TeamForumPage() {
       ) : (
         <div className="space-y-4">
           {threads.map((thread) => (
-            <Link
+            <ForumThreadCard
               key={thread.id}
-              href={`/forums/${teamId}/${thread.id}`}
-              className="card-hover block rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-5 transition-colors hover:bg-[var(--sd-surface-raised)]"
-            >
-              <h3 className="font-display text-lg font-bold uppercase tracking-tight mb-2">
-                {thread.title}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-body mb-3">
-                <span className="font-semibold text-foreground">
-                  {thread.author?.username || "Unknown"}
-                </span>
-                <span>·</span>
-                <span>{formatDistanceShort(thread.createdAt)}</span>
-                <span>·</span>
-                <span>{thread._count?.posts || 0} posts</span>
-              </div>
-              {thread.tags && thread.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {thread.tags.map((t) => (
-                    t.tag && (
-                      <Badge key={t.tag.id} variant="secondary">
-                        {t.tag.name}
-                      </Badge>
-                    )
-                  ))}
-                </div>
-              )}
-            </Link>
+              thread={thread}
+              threadHref={`/forums/${teamId}/${thread.id}`}
+            />
           ))}
         </div>
       )}

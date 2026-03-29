@@ -1,21 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceShort } from "@/lib/utils";
-import { FeedEventGroup } from "@/types";
+import { getDailyDigest } from "@/lib/api";
+import type { DailyDigest, FeedEventGroup } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   MessageCircle,
   Trophy,
   FileText,
   TrendingUp,
-  Clock,
   Users,
   BookOpen,
   MessageSquare,
   CalendarDays,
   ChevronRight,
   Dot,
+  Newspaper,
+  Loader2,
 } from "lucide-react";
 
 interface ActivityFeedProps {
@@ -76,7 +79,7 @@ function formatMatchDate(utcDate: string): string {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
 
-  if (sameDay(d, today)) return "Today";
+  if (sameDay(d, today)) return "Completed";
   if (sameDay(d, yesterday)) return "Yesterday";
   if (sameDay(d, tomorrow)) return "Tomorrow";
 
@@ -280,7 +283,11 @@ function TeamSidebar({ matchGroups }: { matchGroups: MatchDateGroup[] }) {
 
 // ─── Social event card ────────────────────────────────────────────────────────
 
-type SocialSection = "replies" | "following" | "yours";
+type SocialSection = "replies" | "following" | "yours" | "forums";
+
+function isForumSynthetic(e: FeedEventGroup): boolean {
+  return String(e.groupKey ?? "").startsWith("syn_forum_");
+}
 
 function buildSocialText(
   event: FeedEventGroup,
@@ -323,18 +330,21 @@ const SECTION_ICON: Record<SocialSection, React.FC<{ className?: string }>> = {
   replies: MessageCircle,
   following: Users,
   yours: BookOpen,
+  forums: TrendingUp,
 };
 
 const SECTION_COLOR: Record<SocialSection, string> = {
   replies: "text-indigo-400",
   following: "text-blue-400",
   yours: "text-violet-400",
+  forums: "text-teal-400",
 };
 
 const SECTION_LABEL: Record<SocialSection, string> = {
   replies: "Replies to you",
   following: "From people you follow",
   yours: "Your forum activity",
+  forums: "From the forums",
 };
 
 const EVENT_PILL: Record<
@@ -363,6 +373,7 @@ const AVATAR_COLOR: Record<SocialSection, string> = {
   replies: "bg-indigo-500/10 text-indigo-400",
   following: "bg-blue-500/10 text-blue-400",
   yours: "bg-violet-500/10 text-violet-400",
+  forums: "bg-teal-500/10 text-teal-400",
 };
 
 function SocialEventCard({
@@ -501,10 +512,12 @@ function FeedSection({
   section,
   events,
   viewerId,
+  subtitle,
 }: {
   section: SocialSection;
   events: FeedEventGroup[];
   viewerId?: number;
+  subtitle?: string;
 }) {
   if (events.length === 0) return null;
 
@@ -527,6 +540,11 @@ function FeedSection({
           {events.length}
         </span>
       </div>
+      {subtitle ? (
+        <p className="font-body text-[11px] text-muted-foreground px-1 mb-2 leading-snug">
+          {subtitle}
+        </p>
+      ) : null}
 
       <div className="space-y-0.5">
         {events.map((event, i) => (
@@ -577,6 +595,111 @@ function TeamForumSection({
   );
 }
 
+// ─── Daily digest (GET /api/digest) ───────────────────────────────────────────
+
+function DailyDigestPanel() {
+  const [data, setData] = useState<DailyDigest | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const d = await getDailyDigest();
+        if (!cancelled) setData(d);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Could not load digest");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div
+        className="rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-5"
+        aria-busy="true"
+        aria-label="Loading daily digest"
+      >
+        <div className="flex items-center gap-2 text-muted-foreground mb-4">
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          <span className="font-display text-[10px] font-bold uppercase tracking-widest">
+            Daily digest
+          </span>
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 bg-[var(--sd-surface-raised)] rounded w-full animate-pulse" />
+          <div className="h-3 bg-[var(--sd-surface-raised)] rounded w-[92%] animate-pulse" />
+          <div className="h-3 bg-[var(--sd-surface-raised)] rounded w-4/5 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-4">
+        <p className="font-body text-xs text-muted-foreground">{error ?? "Digest unavailable."}</p>
+      </div>
+    );
+  }
+
+  const dateLabel = new Date(data.date).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const paragraphs = data.content
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  return (
+    <article
+      className="rounded-xl border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] p-5 sm:p-6"
+      aria-label="Daily digest"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2 text-[var(--sd-accent)]">
+          <Newspaper className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="font-display text-[10px] font-bold uppercase tracking-widest">
+            Daily digest
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {data.fresh ? (
+            <span className="font-body text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--sd-accent)]/15 text-[var(--sd-accent)]">
+              Just generated
+            </span>
+          ) : null}
+          <time
+            dateTime={data.date}
+            className="font-body text-[10px] text-muted-foreground"
+          >
+            {dateLabel}
+          </time>
+        </div>
+      </div>
+      <div className="space-y-3 font-body text-sm text-foreground leading-relaxed">
+        {paragraphs.map((block, i) => (
+          <p key={i} className="whitespace-pre-wrap">
+            {block}
+          </p>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -589,8 +712,8 @@ function EmptyState() {
         Nothing here yet
       </p>
       <p className="font-body text-sm text-muted-foreground max-w-xs leading-relaxed">
-        Follow users to see their posts, and set a favourite team on your
-        profile to see match results and upcoming fixtures.
+        Follow people from threads, check the forums, and set a favourite team on
+        your profile to see match updates in the sidebar.
       </p>
     </div>
   );
@@ -605,15 +728,28 @@ export default function ActivityFeed({
   viewerFavoriteTeamId,
 }: ActivityFeedProps) {
   if (events.length === 0) {
-    return <EmptyState />;
+    return (
+      <div className={`space-y-8 ${className ?? ""}`}>
+        <DailyDigestPanel />
+        <EmptyState />
+      </div>
+    );
   }
 
   // Partition events
   const repliesEvents = events.filter((e) => e.type === "new_reply");
 
+  const forumDiscoveryEvents = events.filter(
+    (e) =>
+      isForumSynthetic(e) &&
+      (e.type === "new_post" || e.type === "new_thread") &&
+      !isOwnFavoriteTeamForumEvent(e, viewerId, viewerFavoriteTeamId)
+  );
+
   const followingEvents = events.filter(
     (e) =>
       (e.type === "new_post" || e.type === "new_thread") &&
+      !isForumSynthetic(e) &&
       !isOwnFavoriteTeamForumEvent(e, viewerId, viewerFavoriteTeamId)
   );
 
@@ -643,6 +779,7 @@ export default function ActivityFeed({
     >
       {/* ── Left: social feed ─────────────────────────────────────────────── */}
       <div className="space-y-6 min-w-0">
+        <DailyDigestPanel />
         <FeedSection
           section="replies"
           events={repliesEvents}
@@ -654,6 +791,12 @@ export default function ActivityFeed({
           viewerId={viewerId}
         />
         <FeedSection
+          section="forums"
+          events={forumDiscoveryEvents}
+          viewerId={viewerId}
+          subtitle="Recent threads and posts from your team’s forum and sitewide — shown when people you follow have been quiet, or you are not following anyone yet."
+        />
+        <FeedSection
           section="yours"
           events={ownActivityEvents}
           viewerId={viewerId}
@@ -662,6 +805,7 @@ export default function ActivityFeed({
         {/* Empty social state when only match events exist */}
         {repliesEvents.length === 0 &&
           followingEvents.length === 0 &&
+          forumDiscoveryEvents.length === 0 &&
           ownActivityEvents.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="h-10 w-10 rounded-xl bg-[var(--sd-surface-raised)] flex items-center justify-center mb-3 border border-[var(--sd-border-subtle)]">
@@ -670,11 +814,12 @@ export default function ActivityFeed({
               <p className="font-body text-sm text-muted-foreground">
                 No social activity yet.{" "}
                 <Link
-                  href="/users"
+                  href="/forums"
                   className="text-[var(--sd-accent)] hover:underline"
                 >
-                  Find people to follow
-                </Link>
+                  Browse forums
+                </Link>{" "}
+                and follow people from threads you like.
               </p>
             </div>
           )}

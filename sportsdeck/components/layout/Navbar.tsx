@@ -42,6 +42,7 @@ const NAV_LINKS = [
   { href: "/matches", label: "Matches" },
   { href: "/standings", label: "Standings" },
   { href: "/forums", label: "Forums" },
+  { href: "/users", label: "Users" },
 ] as const;
 
 export default function Navbar() {
@@ -51,6 +52,12 @@ export default function Navbar() {
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  /** /users list is exact; /users/[id] profiles should not highlight "Users" nav. */
+  const isNavLinkActive = (href: string) =>
+    href === "/users"
+      ? pathname === "/users"
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   /** Logged-in "home" is the personalized feed, not the marketing landing page. */
   const brandHref = user ? "/activity" : "/";
@@ -81,7 +88,7 @@ export default function Navbar() {
                 href={link.href}
                 className={cn(
                   "nav-link text-sm font-medium transition-colors",
-                  isActive(link.href)
+                  isNavLinkActive(link.href)
                     ? "nav-link--active"
                     : "text-muted-foreground hover:text-foreground"
                 )}
@@ -195,7 +202,7 @@ export default function Navbar() {
                     href={link.href}
                     className={cn(
                       "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      isActive(link.href)
+                      isNavLinkActive(link.href)
                         ? "accent-border-left bg-[var(--sd-accent-muted)] text-[var(--sd-accent)]"
                         : "text-muted-foreground hover:text-foreground hover:bg-[var(--sd-surface-raised)]"
                     )}

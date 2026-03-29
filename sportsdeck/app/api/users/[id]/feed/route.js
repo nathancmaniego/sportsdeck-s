@@ -238,6 +238,240 @@ export async function GET(req, { params }) {
   }
 
   // ------------------------------------------------------------------
+  // 2d. Recent threads & posts from people you follow (live DB, not only FeedEvent rows)
+  // ------------------------------------------------------------------
+  function collectCoveredContentIds(gs) {
+    const postIds = new Set();
+    const threadIdsAsThreadCard = new Set();
+    for (const g of gs) {
+      const e = g.event;
+      if (e.post?.id != null) postIds.add(e.post.id);
+      if (e.type === "new_thread" && e.thread?.id != null) {
+        threadIdsAsThreadCard.add(e.thread.id);
+      }
+    }
+    return { postIds, threadIdsAsThreadCard };
+  }
+
+  let { postIds: coveredPostIds, threadIdsAsThreadCard: coveredThreadIds } =
+    collectCoveredContentIds(groups);
+
+  const followRows = await prisma.follow.findMany({
+    where: { followerId: userId },
+    select: { followingId: true },
+  });
+  const followingIds = [...new Set(followRows.map((f) => f.followingId))].filter(
+    (id) => id !== userId
+  );
+
+  if (followingIds.length > 0) {
+    const followThreads = await prisma.thread.findMany({
+      where: { authorId: { in: followingIds }, isHidden: false },
+      include: {
+        author: { select: { id: true, username: true, avatar: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    });
+
+    for (const t of followThreads) {
+      if (coveredThreadIds.has(t.id)) continue;
+      coveredThreadIds.add(t.id);
+      groups.push({
+        event: {
+          groupKey: `syn_follow_thread_${t.id}`,
+          type: "new_thread",
+          isRead: true,
+          createdAt: t.createdAt,
+          actor: {
+            id: t.author.id,
+            username: t.author.username,
+            avatar: t.author.avatar ?? null,
+          },
+          thread: {
+            id: t.id,
+            title: t.title,
+            teamId: t.teamId,
+          },
+          post: null,
+          match: null,
+        },
+        count: 1,
+        isSynthetic: true,
+      });
+    }
+
+    const followPosts = await prisma.post.findMany({
+      where: {
+        authorId: { in: followingIds },
+        isHidden: false,
+        thread: { isHidden: false },
+      },
+      include: {
+        author: { select: { id: true, username: true, avatar: true } },
+        thread: { select: { id: true, title: true, teamId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 32,
+    });
+
+    for (const p of followPosts) {
+      if (coveredPostIds.has(p.id)) continue;
+      if (p.parentId == null && coveredThreadIds.has(p.threadId)) continue;
+      coveredPostIds.add(p.id);
+      groups.push({
+        event: {
+          groupKey: `syn_follow_post_${p.id}`,
+          type: "new_post",
+          isRead: true,
+          createdAt: p.createdAt,
+          actor: {
+            id: p.author.id,
+            username: p.author.username,
+            avatar: p.author.avatar ?? null,
+          },
+          thread: p.thread
+            ? {
+                id: p.thread.id,
+                title: p.thread.title,
+                teamId: p.thread.teamId,
+              }
+            : null,
+          post: { id: p.id, content: p.content },
+          match: null,
+        },
+        count: 1,
+        isSynthetic: true,
+      });
+    }
+  }
+
+  const followSynCount = groups.filter((g) =>
+    String(g.event.groupKey || "").startsWith("syn_follow_")
+  ).length;
+
+  // ------------------------------------------------------------------
+  // 2e. Forum highlights when follows are quiet (keeps the feed from feeling empty)
+  // ------------------------------------------------------------------
+  const meForFill = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { favoriteTeamId: true },
+  });
+  const favoriteTeamId = meForFill?.favoriteTeamId ?? null;
+  const needForumFill = followingIds.length === 0 || followSynCount < 6;
+
+  if (needForumFill) {
+    let added = 0;
+    const maxForum = 14;
+
+    const pushForumThread = (t) => {
+      if (added >= maxForum || coveredThreadIds.has(t.id)) return;
+      coveredThreadIds.add(t.id);
+      added++;
+      groups.push({
+        event: {
+          groupKey: `syn_forum_thread_${t.id}`,
+          type: "new_thread",
+          isRead: true,
+          createdAt: t.createdAt,
+          actor: {
+            id: t.author.id,
+            username: t.author.username,
+            avatar: t.author.avatar ?? null,
+          },
+          thread: {
+            id: t.id,
+            title: t.title,
+            teamId: t.teamId,
+          },
+          post: null,
+          match: null,
+        },
+        count: 1,
+        isSynthetic: true,
+      });
+    };
+
+    const pushForumPost = (p) => {
+      if (added >= maxForum || coveredPostIds.has(p.id)) return;
+      if (p.parentId == null && coveredThreadIds.has(p.threadId)) return;
+      coveredPostIds.add(p.id);
+      added++;
+      groups.push({
+        event: {
+          groupKey: `syn_forum_post_${p.id}`,
+          type: "new_post",
+          isRead: true,
+          createdAt: p.createdAt,
+          actor: {
+            id: p.author.id,
+            username: p.author.username,
+            avatar: p.author.avatar ?? null,
+          },
+          thread: p.thread
+            ? {
+                id: p.thread.id,
+                title: p.thread.title,
+                teamId: p.thread.teamId,
+              }
+            : null,
+          post: { id: p.id, content: p.content },
+          match: null,
+        },
+        count: 1,
+        isSynthetic: true,
+      });
+    };
+
+    if (favoriteTeamId != null) {
+      const teamThreads = await prisma.thread.findMany({
+        where: {
+          isHidden: false,
+          authorId: { not: userId },
+          teamId: favoriteTeamId,
+        },
+        include: {
+          author: { select: { id: true, username: true, avatar: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      });
+      for (const t of teamThreads) pushForumThread(t);
+
+      const teamPosts = await prisma.post.findMany({
+        where: {
+          isHidden: false,
+          authorId: { not: userId },
+          thread: { isHidden: false, teamId: favoriteTeamId },
+        },
+        include: {
+          author: { select: { id: true, username: true, avatar: true } },
+          thread: { select: { id: true, title: true, teamId: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 16,
+      });
+      for (const p of teamPosts) pushForumPost(p);
+    }
+
+    const globalTake = favoriteTeamId != null && added < 5 ? 22 : 18;
+    const globalPosts = await prisma.post.findMany({
+      where: {
+        isHidden: false,
+        authorId: { not: userId },
+        thread: { isHidden: false },
+      },
+      include: {
+        author: { select: { id: true, username: true, avatar: true } },
+        thread: { select: { id: true, title: true, teamId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: globalTake,
+    });
+    for (const p of globalPosts) pushForumPost(p);
+  }
+
+  // ------------------------------------------------------------------
   // 3. Sort groups by latest event time, then paginate
   // ------------------------------------------------------------------
   groups.sort(

@@ -296,10 +296,12 @@ export interface ThreadSentiment {
   calculatedAt: string;
 }
 
+/** GET /api/digest — includes `fresh` when newly generated this request. */
 export interface DailyDigest {
   id: number;
   content: string;
   date: string;
+  fresh?: boolean;
 }
 
 export interface OAuthAccount {
@@ -422,6 +424,35 @@ export interface FollowUser {
   avatar: string | null;
   favoriteTeamId: number | null;
   followedAt: string;
+}
+
+/** Row from GET /api/users (discover / search). */
+export interface UserListItem {
+  id: number;
+  username: string;
+  avatar: string | null;
+  favoriteTeamId: number | null;
+  favoriteTeam: {
+    id: number;
+    shortName: string;
+    crestUrl: string;
+    tla: string;
+  } | null;
+  _count: {
+    followers: number;
+    following: number;
+  };
+  isFollowedByMe: boolean;
+}
+
+export interface UserSearchResponse {
+  users: UserListItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
 }
 
 export interface FollowListResponse {

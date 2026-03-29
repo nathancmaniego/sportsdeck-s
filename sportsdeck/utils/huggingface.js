@@ -112,24 +112,39 @@ export async function classifySentiment(texts) {
  * @returns {string}
  */
 export async function generateText(prompt, maxTokens = 400) {
-  // router.huggingface.co/v1 is the unified OpenAI-compatible endpoint.
-  // Model format: "repo/name:provider" — :fastest picks the fastest free provider.
+  if (!HF_TOKEN || String(HF_TOKEN).trim().length < 8) {
+    console.warn("[HF] generateText skipped: set HUGGINGFACE_API_KEY for AI digest / generation.");
+    return "";
+  }
+
+  // router.huggingface.co/v1 — OpenAI-style chat.completions (not raw Llama [INST] templates).
   const models = [
+    "meta-llama/Llama-3.2-1B-Instruct:fastest",
     "meta-llama/Llama-3.2-3B-Instruct:fastest",
     "mistralai/Mistral-7B-Instruct-v0.3:fastest",
+    "Qwen/Qwen2.5-1.5B-Instruct:fastest",
   ];
+
+  const body = (model) => ({
+    model,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a concise Premier League journalist for UK readers. Output plain paragraphs only: no markdown, no headings, no bullet lists unless the user explicitly asks.",
+      },
+      { role: "user", content: prompt },
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.65,
+  });
 
   for (const model of models) {
     try {
       const res = await fetch("https://router.huggingface.co/v1/chat/completions", {
         method: "POST",
         headers: HEADERS,
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: maxTokens,
-          temperature: 0.7,
-        }),
+        body: JSON.stringify(body(model)),
       });
 
       if (!res.ok) {
@@ -142,11 +157,71 @@ export async function generateText(prompt, maxTokens = 400) {
       if (text && text.length > 0) return text;
     } catch (err) {
       console.error(`[HF] generateText failed with ${model}:`, err.message);
-      // try next model
     }
   }
 
-  return ""; // graceful degradation
+  return "";
+}
+
+/**
+ * Daily digest only: low temperature + strict “no invention” system prompt.
+ * Call only when both results and fixtures blocks contain real rows from the DB.
+ */
+export async function generateDigestText(prompt, maxTokens = 480) {
+  if (!HF_TOKEN || String(HF_TOKEN).trim().length < 8) {
+    console.warn("[HF] generateDigestText skipped: set HUGGINGFACE_API_KEY for AI digest / generation.");
+    return "";
+  }
+
+  const models = [
+    "meta-llama/Llama-3.2-1B-Instruct:fastest",
+    "meta-llama/Llama-3.2-3B-Instruct:fastest",
+    "mistralai/Mistral-7B-Instruct-v0.3:fastest",
+    "Qwen/Qwen2.5-1.5B-Instruct:fastest",
+  ];
+
+  const system = `You are a SportsDeck digest writer. You ONLY restate facts from the user's message.
+
+Hard rules:
+- Plain text, short paragraphs, no markdown.
+- Use ONLY match results from the RESULTS block; copy team names and scores exactly as written.
+- Use ONLY fixtures from the FIXTURES block; copy kick-off lines exactly as written.
+- If a block says there are no fixtures or no results in the database, you must say that explicitly and write NOTHING about imaginary games, weekends, or kick-offs.
+- Forum sentences must use ONLY thread titles from FORUM HIGHLIGHTS; do not invent thread names.
+- If the user gives an ALLOWED TEAM NAMES list, you must not mention any other club names anywhere.`;
+
+  const body = (model) => ({
+    model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: prompt },
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.12,
+  });
+
+  for (const model of models) {
+    try {
+      const res = await fetch("https://router.huggingface.co/v1/chat/completions", {
+        method: "POST",
+        headers: HEADERS,
+        body: JSON.stringify(body(model)),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`HF API error ${res.status}: ${errText}`);
+      }
+
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content?.trim();
+      if (text && text.length > 0) return text;
+    } catch (err) {
+      console.error(`[HF] generateDigestText failed with ${model}:`, err.message);
+    }
+  }
+
+  return "";
 }
 
 // ---------------------------------------------------------------------------

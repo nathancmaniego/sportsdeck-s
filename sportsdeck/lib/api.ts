@@ -14,6 +14,8 @@ import type {
   FeedResponse,
   FollowListResponse,
   TeamStub,
+  UserSearchResponse,
+  DailyDigest,
 } from "@/types";
 
 const TOKEN_KEY = "sportsdeck_token";
@@ -232,6 +234,24 @@ export async function getUser(userId: number): Promise<UserProfile> {
   return apiFetch<{ user: UserProfile }>(`/api/users/${userId}`).then(
     (res) => res.user
   );
+}
+
+export async function getDailyDigest(): Promise<DailyDigest> {
+  return apiFetch<DailyDigest>("/api/digest");
+}
+
+export async function searchUsers(params: {
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<UserSearchResponse> {
+  const query = new URLSearchParams();
+  const q = (params.q ?? "").trim();
+  if (q) query.set("q", q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  const suffix = query.toString() ? `?${query}` : "";
+  return apiFetch<UserSearchResponse>(`/api/users${suffix}`);
 }
 
 export async function followUser(userId: number): Promise<void> {

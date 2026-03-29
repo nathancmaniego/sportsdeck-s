@@ -222,7 +222,7 @@ export default function UserProfilePage({
               {profile.threads.map((thread: typeof profile.threads[0]) => (
                 <Link
                   key={thread.id}
-                  href={`/forums/${thread.team.id}/${thread.id}`}
+                  href={`/forums/${thread.team?.id ?? "general"}/${thread.id}`}
                 >
                   <Card className="border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] hover:border-[var(--sd-accent)]/30 transition-colors">
                     <CardContent className="p-4">
@@ -233,7 +233,7 @@ export default function UserProfilePage({
                           </h3>
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <span className="font-body text-xs">
-                              {thread.team.shortName}
+                              {thread.team?.shortName ?? "General"}
                             </span>
                             <span>•</span>
                             <span className="font-body text-xs">
@@ -263,7 +263,7 @@ export default function UserProfilePage({
               {profile.posts.map((post: typeof profile.posts[0]) => (
                 <Link
                   key={post.id}
-                  href={`/forums/${post.thread.id}#post-${post.id}`}
+                  href={`/forums/${post.thread.teamId ?? "general"}/${post.thread.id}#post-${post.id}`}
                 >
                   <Card className="border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] hover:border-[var(--sd-accent)]/30 transition-colors">
                     <CardContent className="p-4">

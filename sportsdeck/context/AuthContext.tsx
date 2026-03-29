@@ -64,6 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Keep auth state in sync when apiFetch signs us out (e.g. expired token).
+  useEffect(() => {
+    const handler = () => {
+      const stored = api.getStoredUser();
+      setUser(stored);
+    };
+    window.addEventListener("sportsdeck:auth-changed", handler);
+    return () => window.removeEventListener("sportsdeck:auth-changed", handler);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const u = await api.login(email, password);
     setUser(u);

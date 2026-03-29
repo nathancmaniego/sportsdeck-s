@@ -11,8 +11,6 @@ import { createFollowerFeedEvents, createTeamFavoriteFeedEvents } from "@/utils/
 export async function GET(request, { params }) {
     try {
         const { id } = await params;
-        const { searchParams } = new URL(request.url);
-        const parentId = searchParams.get("parentId");
 
         const thread = await prisma.thread.findUnique({
             where: { id: parseInt(id) }
@@ -22,30 +20,16 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: "Thread not found" }, { status: 404 });
         }
 
+        // Return a flat list of all posts in the thread (including replies).
+        // The client will build a nested tree using parentId for infinite-depth threads.
         const posts = await prisma.post.findMany({
             where: {
                 threadId: parseInt(id),
                 isHidden: false,
-                ...(parentId && parentId !== "null" 
-                    ? { parentId: parseInt(parentId) } 
-                    : { parentId: null }),
             },
             include: {
                 author: { select: { username: true, avatar: true } },
-                replies: {
-                    where: { isHidden: false },
-                    include: {
-                        author: { select: { username: true, avatar: true } }
-                    }
-                },
-                poll: {
-                    include: {
-                        options: {
-                            include: { _count: { select: { votes: true } } }
-                        }
-                    }
-                },
-                _count: { select: { replies: true } }
+                poll: { select: { id: true } },
             },
             orderBy: { createdAt: "asc" }
         });
@@ -77,6 +61,10 @@ export async function POST(request, { params }) {
 
         if (!thread || thread.isHidden) {
             return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+        }
+
+        if (thread.openAt && new Date() < thread.openAt) {
+            return NextResponse.json({ error: "Thread is not open yet" }, { status: 403 });
         }
 
         if (thread.closeAt && new Date() > thread.closeAt) {

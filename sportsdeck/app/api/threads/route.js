@@ -15,8 +15,20 @@ export async function GET(request){
         const tag = searchParams.get("tag");
         const author = searchParams.get("author");
         const theme = searchParams.get("theme");
+        const status = searchParams.get("status"); // "open" | "closed"
         const limit = parseInt(searchParams.get("limit")) || 20;
         const offset = parseInt(searchParams.get("offset")) || 0;
+
+        const now = new Date();
+        const statusWhere =
+          status === "open"
+            ? {
+                openAt: { lte: now },
+                OR: [{ closeAt: null }, { closeAt: { gt: now } }],
+              }
+            : status === "closed"
+              ? { closeAt: { not: null, lte: now } }
+              : {};
 
         const threads = await prisma.thread.findMany({
             where: {
@@ -26,10 +38,12 @@ export async function GET(request){
                 ...(matchId && { matchId: parseInt(matchId) }),
                 ...(tag && { tags: { some: { tag: { name: tag } } } }),
                 ...(author && { author: { username: { contains: author, mode: "insensitive" } } }),
+                ...statusWhere,
             },
             include: {
                 author: { select: { username: true, avatar: true } },
                 tags: { include: { tag: true } },
+                team: { select: { id: true, name: true, shortName: true, tla: true, crestUrl: true } },
                 match: true,
                 _count: { select: { posts: true } }
             },

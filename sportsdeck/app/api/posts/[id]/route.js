@@ -26,6 +26,17 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: "Post not found" }, { status: 404 });
         }
 
+        const thread = await prisma.thread.findUnique({ where: { id: post.threadId } });
+        if (!thread || thread.isHidden) {
+            return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+        }
+        if (thread.openAt && new Date() < thread.openAt) {
+            return NextResponse.json({ error: "Thread is not open yet" }, { status: 403 });
+        }
+        if (thread.closeAt && new Date() > thread.closeAt) {
+            return NextResponse.json({ error: "Thread is closed" }, { status: 403 });
+        }
+
         // Only the author can edit
         if (post.authorId !== user.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -71,6 +82,17 @@ export async function DELETE(request, { params }) {
 
         if (!post || post.isHidden) {
             return NextResponse.json({ error: "Post not found" }, { status: 404 });
+        }
+
+        const thread = await prisma.thread.findUnique({ where: { id: post.threadId } });
+        if (!thread || thread.isHidden) {
+            return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+        }
+        if (thread.openAt && new Date() < thread.openAt) {
+            return NextResponse.json({ error: "Thread is not open yet" }, { status: 403 });
+        }
+        if (thread.closeAt && new Date() > thread.closeAt) {
+            return NextResponse.json({ error: "Thread is closed" }, { status: 403 });
         }
 
         // Only the author OR an admin can delete

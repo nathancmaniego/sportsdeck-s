@@ -60,7 +60,7 @@ export async function GET(request, { params }) {
             content: true,
             createdAt: true,
             parentId: true,
-            thread: { select: { id: true, title: true } },
+            thread: { select: { id: true, title: true, teamId: true } },
           }
         },
       },

@@ -54,6 +54,11 @@ function clearAuth() {
   localStorage.removeItem(USER_KEY);
 }
 
+function broadcastAuthChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("sportsdeck:auth-changed"));
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
@@ -75,6 +80,16 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
+    // If the token is expired/invalid, sign out locally immediately.
+    if (res.status === 401) {
+      try {
+        clearAuth();
+        broadcastAuthChange();
+      } catch {
+        // ignore
+      }
+    }
+
     let message = `Request failed with status ${res.status}`;
     try {
       const body = await res.json();
@@ -124,6 +139,7 @@ export async function logout(): Promise<void> {
     // clear local state even if server call fails
   }
   clearAuth();
+  broadcastAuthChange();
 }
 
 export async function getMe(): Promise<User | null> {

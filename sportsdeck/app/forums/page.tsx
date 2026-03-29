@@ -31,6 +31,7 @@ export default function ForumsPage() {
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedAuthor, setSelectedAuthor] = useState("");
   const [selectedTheme, setSelectedTheme] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<"" | "open" | "closed">("");
   const [currentPage, setCurrentPage] = useState(1);
   const threadsPerPage = 20;
 
@@ -50,6 +51,7 @@ export default function ForumsPage() {
       if (searchTerm) params.set("title", searchTerm);
       if (selectedTag) params.set("tag", selectedTag);
       if (selectedAuthor) params.set("author", selectedAuthor);
+      if (selectedStatus) params.set("status", selectedStatus);
       params.set("limit", threadsPerPage.toString());
       params.set("offset", ((currentPage - 1) * threadsPerPage).toString());
 
@@ -62,7 +64,7 @@ export default function ForumsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, selectedTag, selectedAuthor, currentPage]);
+  }, [searchTerm, selectedTag, selectedAuthor, selectedStatus, currentPage]);
 
   useEffect(() => {
     loadTeams();
@@ -154,6 +156,26 @@ export default function ForumsPage() {
               onChange={(e) => setSelectedAuthor(e.target.value)}
               className="w-full"
             />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium font-body">
+              Filter by Status
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value as "" | "open" | "closed");
+                setCurrentPage(1);
+              }}
+              className="w-full rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] px-3 py-2 text-sm font-body"
+            >
+              <option value="">All Threads</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
           </div>
         </div>
       </div>

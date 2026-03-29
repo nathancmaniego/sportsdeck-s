@@ -27,6 +27,7 @@ export default function TeamForumPage() {
   const [threads, setThreads] = useState<ThreadWithDetails[]>([]);
   const [team, setTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState<"" | "open" | "closed">("");
 
   const loadTeam = useCallback(async () => {
     if (teamId === "general") {
@@ -48,6 +49,9 @@ export default function TeamForumPage() {
       if (teamId !== "general") {
         params.set("teamId", teamId);
       }
+      if (selectedStatus) {
+        params.set("status", selectedStatus);
+      }
 
       const data = await apiFetch<ThreadWithDetails[]>(
         `/api/threads?${params.toString()}`
@@ -58,7 +62,7 @@ export default function TeamForumPage() {
     } finally {
       setLoading(false);
     }
-  }, [teamId]);
+  }, [teamId, selectedStatus]);
 
   useEffect(() => {
     loadTeam();
@@ -108,6 +112,23 @@ export default function TeamForumPage() {
       </header>
 
       {/* Thread List */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="font-body text-sm text-muted-foreground">Show</span>
+          <select
+            value={selectedStatus}
+            onChange={(e) =>
+              setSelectedStatus(e.target.value as "" | "open" | "closed")
+            }
+            className="rounded-lg border border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] px-3 py-2 text-sm font-body"
+          >
+            <option value="">All Threads</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (

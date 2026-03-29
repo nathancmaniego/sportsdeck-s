@@ -399,7 +399,7 @@ export interface UserProfile {
       id: number;
       shortName: string;
       tla: string;
-    };
+    } | null;
   }>;
   posts: Array<{
     id: number;
@@ -409,6 +409,7 @@ export interface UserProfile {
     thread: {
       id: number;
       title: string;
+      teamId: number | null;
     };
   }>;
   isFollowedByMe?: boolean;

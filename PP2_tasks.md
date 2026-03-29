@@ -51,10 +51,10 @@
 #### Frontend — Forums & Threads
 - [x] Forum/threads list — general + team-specific
 - [x] Thread search — by title, author, team, tag
-- [ ] Thread detail page — posts, replies, edit history accessible
-- [ ] Create thread form — title, body, tags (create new inline)
-- [ ] Reply form — inline, auth-gated
-- [ ] Edit / delete own posts, replies, threads
+- [x] Thread detail page — posts, replies, edit history accessible
+- [x] Create thread form — title, body, tags (create new inline)
+- [x] Reply form — inline, auth-gated
+- [x] Edit / delete own posts, replies, threads
 
 #### Frontend — Moderation
 - [ ] Report post/thread form with reason field

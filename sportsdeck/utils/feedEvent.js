@@ -1,6 +1,25 @@
 import { prisma } from "@/prisma/db";
 // Prompt: Implement utility functions to create feed events when users create threads, posts, or when matches update. These functions should create appropriate feed events for followers and users with favorite teams. Use these utilities in the relevant API routes to trigger feed events on content creation and match updates.
 // Claude Sonnet 4.6
+
+/**
+ * Feed events require a valid User FK for actorId. Match refreshes and calendar
+ * rows use the seeded “SportsDeck” system user (or first admin fallback).
+ */
+export async function getSystemActorForFeed() {
+  const byHandle = await prisma.user.findFirst({
+    where: {
+      OR: [{ username: "SportsDeck" }, { email: "system@sportsdeck.com" }],
+    },
+    select: { id: true, username: true, avatar: true },
+  });
+  if (byHandle) return byHandle;
+  return prisma.user.findFirst({
+    where: { role: "admin" },
+    select: { id: true, username: true, avatar: true },
+    orderBy: { id: "asc" },
+  });
+}
 /**
  * Create feed events for all followers of an actor when content is created.
  * 
@@ -62,7 +81,11 @@ export async function createTeamFavoriteFeedEvents(teamId, actorId, type, matchI
 
     if (users.length === 0) return;
 
-    const feedEvents = users.map((user) => ({
+    // Skip the author: they get team context via the UI bucket, not as “from someone you follow”.
+    const recipients = users.filter((u) => u.id !== actorId);
+    if (recipients.length === 0) return;
+
+    const feedEvents = recipients.map((user) => ({
       userId: user.id,
       actorId, // could be a system user or the user updating the match
       type,

@@ -12,6 +12,8 @@ import type {
   User,
   UserProfile,
   FeedResponse,
+  FollowListResponse,
+  TeamStub,
 } from "@/types";
 
 const TOKEN_KEY = "sportsdeck_token";
@@ -103,6 +105,24 @@ export async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
+/**
+ * If the user has a favourite team but no avatar, persist the team crest as avatar.
+ */
+async function syncFavoriteTeamAvatarIfNeeded(user: User): Promise<User> {
+  const crest = user.favoriteTeam?.crestUrl;
+  const teamId = user.favoriteTeamId ?? user.favoriteTeam?.id ?? null;
+  if (teamId == null || !crest) return user;
+  const empty = !user.avatar || !String(user.avatar).trim();
+  if (!empty) return user;
+  try {
+    await updateProfile(user.id, { avatar: crest });
+    const res = await apiFetch<{ user: User }>(`/api/users/${user.id}`);
+    return res.user;
+  } catch {
+    return user;
+  }
+}
+
 export async function login(
   email: string,
   password: string
@@ -112,9 +132,15 @@ export async function login(
     body: JSON.stringify({ email, password }),
   });
 
-  const user = res.data.user as User;
-  storeAuth(res.data.token, user);
-  return user;
+  storeAuth(res.data.token, res.data.user as User);
+  const fresh = await getMe();
+  if (!fresh) {
+    throw new ApiRequestError({
+      status: 401,
+      message: "Could not load your profile. Try again.",
+    });
+  }
+  return fresh;
 }
 
 export async function signup(
@@ -127,9 +153,15 @@ export async function signup(
     body: JSON.stringify({ username, email, password }),
   });
 
-  const user = res.data.user as User;
-  storeAuth(res.data.token, user);
-  return user;
+  storeAuth(res.data.token, res.data.user as User);
+  const fresh = await getMe();
+  if (!fresh) {
+    throw new ApiRequestError({
+      status: 401,
+      message: "Could not load your profile. Try again.",
+    });
+  }
+  return fresh;
 }
 
 export async function logout(): Promise<void> {
@@ -150,7 +182,8 @@ export async function getMe(): Promise<User | null> {
     const res = await apiFetch<{ user: User }>(
       `/api/users/${stored.id}`
     );
-    const user = res.user;
+    let user = res.user;
+    user = await syncFavoriteTeamAvatarIfNeeded(user);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     return user;
   } catch {
@@ -220,4 +253,45 @@ export async function getFeed(
 
   const url = `/api/users/${userId}/feed${query.toString() ? `?${query}` : ""}`;
   return apiFetch<FeedResponse>(url);
+}
+
+export async function updateProfile(
+  userId: number,
+  data: { username?: string; avatar?: string | null; favoriteTeamId?: number | null }
+): Promise<User> {
+  return apiFetch<{ user: User }>(`/api/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }).then((res) => res.user);
+}
+
+export async function getFollowers(
+  userId: number,
+  page = 1
+): Promise<FollowListResponse> {
+  return apiFetch<FollowListResponse>(
+    `/api/users/${userId}/followers?page=${page}&limit=50`
+  );
+}
+
+export async function getFollowing(
+  userId: number,
+  page = 1
+): Promise<FollowListResponse> {
+  return apiFetch<FollowListResponse>(
+    `/api/users/${userId}/following?page=${page}&limit=50`
+  );
+}
+
+export async function removeFollower(
+  userId: number,
+  followerId: number
+): Promise<void> {
+  await apiFetch(`/api/users/${userId}/followers/${followerId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getTeams(): Promise<TeamStub[]> {
+  return apiFetch<{ teams: TeamStub[] }>("/api/teams").then((r) => r.teams);
 }

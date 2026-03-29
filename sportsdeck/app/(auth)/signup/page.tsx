@@ -1,6 +1,6 @@
 // Prompt: Signup page — react-hook-form + zod validation: username (min 3),
 // email (valid), password (min 6), confirmPassword (must match). Calls signup,
-// redirects to /feed. Same split layout treatment as login.
+// redirects to /activity. Same split layout treatment as login.
 // Claude claude-4.6-opus-high-thinking
 
 "use client";
@@ -50,7 +50,7 @@ export default function SignupPage() {
     try {
       await signup(data.username, data.email, data.password);
       toast.success("Account created! Welcome to SportsDeck.");
-      router.push("/feed");
+      router.push("/activity");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Signup failed. Try again.";

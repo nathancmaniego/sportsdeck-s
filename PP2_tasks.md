@@ -26,27 +26,28 @@
 
 #### Frontend — Your Backend Features
 - [x] Polls UI — create, vote, view results, deadline display
+- [x] Follow / unfollow button + following/followers lists
+- [x] Public user profile page + activity chart
+- [x] Activity feed — grouped events, followed users + team updates
 - [ ] Match thread sentiment indicator (overall + per-team)
 - [ ] Translate post/comment button — inline result
 - [ ] Daily digest display on home/dashboard
-- [x] Activity feed — grouped events, followed users + team updates
-- [x] Follow / unfollow button + following/followers lists
-- [ ] Public user profile page + activity chart
 
 #### Deployment
 - [ ] Deploy to cloud VM, verify public access, write `url.txt`
 - [ ] HTTPS via Nginx + Let's Encrypt *(+bonus)*
+- 
 
 ---
 
 ### 🟢 Partner
 
 #### Frontend — Auth & Profile
-- [ ] Landing page — hero section, sports vibe, league imagery
-- [ ] Navbar — all sections, user dropdown (profile, logout)
-- [ ] Sign up / login pages with frontend validation
+- [x] Landing page — hero section, sports vibe, league imagery
+- [x] Navbar — all sections, user dropdown (profile, logout)
+- [x] Sign up / login pages with frontend validation
 - [ ] OAuth (Google or GitHub) sign-in button + flow
-- [ ] Edit profile page — username, avatar, favorite team
+- [x] Edit profile page — username, avatar, favorite team
 
 #### Frontend — Forums & Threads
 - [x] Forum/threads list — general + team-specific

@@ -109,6 +109,39 @@ export async function POST(request, { params }) {
             await createTeamFavoriteFeedEvents(thread.teamId, user.id, eventType, null, `thread_${thread.id}`);
         }
 
+        // Notify users about activity on their content (replies to your post / posts in your thread)
+        if (parentId) {
+            const parent = await prisma.post.findUnique({
+                where: { id: parseInt(parentId, 10) },
+                select: { authorId: true },
+            });
+            if (parent && parent.authorId !== user.id) {
+                await prisma.feedEvent.create({
+                    data: {
+                        userId: parent.authorId,
+                        actorId: user.id,
+                        type: "new_reply",
+                        threadId: thread.id,
+                        postId: newPost.id,
+                        groupKey: `reply_to_post_${parentId}`,
+                        isRead: false,
+                    },
+                });
+            }
+        } else if (thread.authorId !== user.id) {
+            await prisma.feedEvent.create({
+                data: {
+                    userId: thread.authorId,
+                    actorId: user.id,
+                    type: "new_post",
+                    threadId: thread.id,
+                    postId: newPost.id,
+                    groupKey: `thread_owner_${thread.id}`,
+                    isRead: false,
+                },
+            });
+        }
+
         // Auto-flag potentially inappropriate content (fire-and-forget)
         autoFlagPost(newPost.id, content);
 

@@ -29,7 +29,8 @@ export type FeedEventType =
   | "new_match"
   | "new_thread"
   | "match_score"
-  | "match_status";
+  | "match_status"
+  | "my_post";
 
 export interface User {
   id: number;
@@ -415,10 +416,37 @@ export interface UserProfile {
   isFollowedByMe?: boolean;
 }
 
+export interface FollowUser {
+  id: number;
+  username: string;
+  avatar: string | null;
+  favoriteTeamId: number | null;
+  followedAt: string;
+}
+
+export interface FollowListResponse {
+  followers?: FollowUser[];
+  following?: FollowUser[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface TeamStub {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crestUrl: string;
+}
+
 export interface FeedEventGroup {
   groupKey: string | null;
   count: number;
-  type: "new_post" | "new_reply" | "new_match" | "new_thread" | "match_score" | "match_status";
+  type: "new_post" | "new_reply" | "new_match" | "new_thread" | "match_score" | "match_status" | "my_post";
   isRead: boolean;
   createdAt: string;
   actor: {
@@ -429,6 +457,7 @@ export interface FeedEventGroup {
   thread: {
     id: number;
     title: string;
+    teamId?: number | null;
   } | null;
   post: {
     id: number;
@@ -446,6 +475,7 @@ export interface FeedEventGroup {
       shortName: string;
       crestUrl: string;
     };
+    utcDate: string | null;
     homeScore: number | null;
     awayScore: number | null;
     status: string;

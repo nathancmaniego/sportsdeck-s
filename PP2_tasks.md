@@ -49,8 +49,8 @@
 - [ ] Edit profile page — username, avatar, favorite team
 
 #### Frontend — Forums & Threads
-- [ ] Forum/threads list — general + team-specific
-- [ ] Thread search — by title, author, team, tag
+- [x] Forum/threads list — general + team-specific
+- [x] Thread search — by title, author, team, tag
 - [ ] Thread detail page — posts, replies, edit history accessible
 - [ ] Create thread form — title, body, tags (create new inline)
 - [ ] Reply form — inline, auth-gated

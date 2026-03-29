@@ -13,13 +13,19 @@ export async function GET(request){
         const teamId = searchParams.get("teamId");
         const matchId = searchParams.get("matchId");
         const tag = searchParams.get("tag");
+        const author = searchParams.get("author");
+        const theme = searchParams.get("theme");
+        const limit = parseInt(searchParams.get("limit")) || 20;
+        const offset = parseInt(searchParams.get("offset")) || 0;
+
         const threads = await prisma.thread.findMany({
             where: {
                 isHidden: false,
-                ...(title && { title: { contains: title } }),
+                ...(title && { title: { contains: title, mode: "insensitive" } }),
                 ...(teamId && { teamId: parseInt(teamId) }),
                 ...(matchId && { matchId: parseInt(matchId) }),
                 ...(tag && { tags: { some: { tag: { name: tag } } } }),
+                ...(author && { author: { username: { contains: author, mode: "insensitive" } } }),
             },
             include: {
                 author: { select: { username: true, avatar: true } },
@@ -28,6 +34,8 @@ export async function GET(request){
                 _count: { select: { posts: true } }
             },
             orderBy: { createdAt: "desc" },
+            take: limit,
+            skip: offset,
         });
         return NextResponse.json(threads);
     } catch (error) {

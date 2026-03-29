@@ -6,15 +6,16 @@
 
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -26,10 +27,28 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  oauth_config:
+    "Google sign-in is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+  oauth_denied: "Sign-in was cancelled.",
+  oauth_state: "That sign-in link expired. Please try again.",
+  oauth: "Google sign-in failed. Try again.",
+  banned: "This account cannot sign in.",
+};
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (!err) return;
+    const msg = OAUTH_ERROR_MESSAGES[err] ?? "Something went wrong. Try again.";
+    toast.error(msg);
+    router.replace("/login", { scroll: false });
+  }, [searchParams, router]);
 
   const {
     register,
@@ -152,6 +171,27 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-[var(--sd-border-subtle)]" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase tracking-wider">
+              <span className="bg-[var(--sd-bg)] px-3 font-display font-bold text-muted-foreground">
+                Or continue with Google
+              </span>
+            </div>
+          </div>
+
+          <a
+            href="/api/auth/oauth/google"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "default" }),
+              "flex w-full border-[var(--sd-border-subtle)] bg-[var(--sd-surface)] font-body font-semibold no-underline"
+            )}
+          >
+            Continue with Google
+          </a>
+
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link
@@ -164,5 +204,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--sd-accent)]" />
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

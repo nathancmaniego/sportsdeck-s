@@ -31,7 +31,7 @@
 - [x] Activity feed — grouped events, followed users + team updates
 - [x] Match thread sentiment indicator (overall + per-team)
 - [x] Daily digest display on home/dashboard
-- [ ] OAuth (Google or GitHub) sign-in button + flow
+- [x] OAuth (Google) sign-in button + flow
 
 #### Deployment
 - [ ] Deploy to cloud VM, verify public access, write `url.txt`

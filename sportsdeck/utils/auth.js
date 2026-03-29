@@ -9,7 +9,7 @@ const REFRESH_EXPIRY_DAYS = 7
 
 export function generateToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { id: user.id, email: user.email, role: user.role, username: user.username },
     process.env.JWT_SECRET,
     { expiresIn: '15m' }
   )

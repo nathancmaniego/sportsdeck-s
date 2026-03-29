@@ -53,6 +53,64 @@ function storeAuth(token: string, user: User) {
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
+function parseAccessTokenPayload(
+  token: string
+): { id: number; email: string; username: string; role: User["role"] } | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    const p = JSON.parse(json) as Record<string, unknown>;
+    if (
+      typeof p.id !== "number" ||
+      typeof p.email !== "string" ||
+      typeof p.username !== "string" ||
+      (p.role !== "user" && p.role !== "admin")
+    ) {
+      return null;
+    }
+    return {
+      id: p.id,
+      email: p.email,
+      username: p.username,
+      role: p.role,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Finish OAuth redirect: persist JWT from URL hash and load full profile. */
+export async function completeOAuthSession(token: string): Promise<User> {
+  const payload = parseAccessTokenPayload(token);
+  if (!payload) {
+    throw new ApiRequestError({
+      status: 400,
+      message: "Invalid sign-in payload",
+    });
+  }
+  const stub: User = {
+    id: payload.id,
+    email: payload.email,
+    username: payload.username,
+    role: payload.role,
+    isBanned: false,
+    createdAt: "",
+    updatedAt: "",
+  };
+  storeAuth(token, stub);
+  const fresh = await getMe();
+  if (!fresh) {
+    clearAuth();
+    throw new ApiRequestError({
+      status: 401,
+      message: "Could not load your profile. Try again.",
+    });
+  }
+  broadcastAuthChange();
+  return fresh;
+}
+
 function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);

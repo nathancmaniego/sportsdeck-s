@@ -23,11 +23,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
+      # Overrides host .env so the app container talks to Postgres on the compose network
       DATABASE_URL: postgresql://postgres:password@db:5432/sportsdeck
-      JWT_SECRET: 4473f0c2fb3379ebdedb6db7c9ec828e42d20119dd2cf6ff1e5ba872a698ea2f
-      FOOTBALL_DATA_API_KEY: 1e36bb976f61413281ce841fb3522e97
-      HUGGINGFACE_API_KEY: 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
 
 volumes:
   postgres_data:

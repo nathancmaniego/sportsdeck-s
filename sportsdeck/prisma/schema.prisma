@@ -26,8 +26,8 @@
 
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
-
+  // native: local dev; linux-musl-*: Alpine Docker (ARM); rhel-openssl-3.0.x: Vercel serverless
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

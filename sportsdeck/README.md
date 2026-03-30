@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SportsDeck
 
-## Getting Started
+Next.js app with PostgreSQL (Prisma), Docker for local development, and [Vercel](https://vercel.com) for free hosting.
 
-First, run the development server:
+## Run locally with Docker (grading / TA)
+
+From the `sportsdeck` directory:
+
+1. Copy environment template and edit values (API keys, secrets):
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Start Postgres and the app:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open [http://localhost:3000](http://localhost:3000).
+
+The app container runs migrations, seeds the database, then starts the dev server (`startup.sh`). The compose file overrides `DATABASE_URL` so the app uses the `db` service; other variables are read from `.env`.
+
+## Run locally without Docker
+
+Requires Node 20+ and a PostgreSQL instance. Set `DATABASE_URL` in `.env`, then:
 
 ```bash
+npm install
+npx prisma migrate deploy
+npm run seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy to Vercel (free tier)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Database** — Vercel does not run Postgres for you. Create a free PostgreSQL database (for example [Neon](https://neon.tech) or [Supabase](https://supabase.com)) and copy its connection string.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Import the project** — In [Vercel](https://vercel.com/new), import this Git repository. If the repo root is above `sportsdeck`, set **Root Directory** to `sportsdeck`.
 
-## Learn More
+3. **Environment variables** — In the project **Settings → Environment Variables**, add (at least for **Production**; add **Preview** too if you use preview deployments):
 
-To learn more about Next.js, take a look at the following resources:
+   | Name | Notes |
+   |------|--------|
+   | `DATABASE_URL` | Postgres URL from Neon/Supabase (often needs `?sslmode=require`) |
+   | `JWT_SECRET` | Long random string |
+   | `FOOTBALL_DATA_API_KEY` | From [football-data.org](https://www.football-data.org/) |
+   | `HUGGINGFACE_API_KEY` | If you use Hugging Face features |
+   | `NEXT_PUBLIC_APP_URL` | Your live URL, e.g. `https://your-project.vercel.app` (no trailing slash) |
+   | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional; if using Google sign-in, add the production redirect URI in Google Cloud: `https://YOUR_DOMAIN/api/auth/oauth/google/callback` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Deploy** — Push to the connected branch or click Deploy. The build runs `prisma migrate deploy` then `next build` (see `vercel.json`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. **Seed (once)** — After the first successful deploy, populate data from your machine (with production `DATABASE_URL` in the environment or a pulled `.env`):
 
-## Deploy on Vercel
+   ```bash
+   cd sportsdeck
+   DATABASE_URL="postgresql://..." npm run seed
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`postinstall` runs `prisma generate` so the Prisma client is generated on Vercel; `schema.prisma` includes binary targets for Docker (Alpine) and Vercel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build (no migrate; use Vercel build or run `prisma migrate deploy` yourself) |
+| `npm run start` | Start production server after `build` |
+| `npm run seed` | Seed database |

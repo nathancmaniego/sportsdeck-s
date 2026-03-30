@@ -1,0 +1,4 @@
+// This is to acknowledge that Nathan Maniego and Albin Peter Joy used Artificial intelligence to assist in the development of this file. The AI was used to generate boilerplate code and provide suggestions for implementing the required functionality. The final implementation was reviewed and modified by both Nathan and Albin to ensure it meets the project requirements and coding standards.
+// Used Artificial intelligence for this using Claude Sonnet 4.5 and Claude Sonnet 4.6
+// Asked AI to generate stud points for all front end features that must be implemented based on our already existing backend and database and requirements.
+// Typical Prompt: "Please help me implement the front end for {feature} based on the following backend API and database structure: {backend API and database structure}. Please follow our design system and help implement what's needed. We will review and change after implementation."

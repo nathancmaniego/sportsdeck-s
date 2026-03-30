@@ -15,17 +15,47 @@
 //Prompt: How can I seed my database with real Premier League data from football-data.org? I want to fetch the current season, all teams, and all matches, and save them to my database using Prisma. I also want to auto-create discussion threads for each match that open 2 weeks before kick-off and close 2 weeks after.
 // Claude 4.6 Sonnet
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dns from "node:dns";
+import dotenv from "dotenv";
 import { PrismaClient, type User } from "@prisma/client";
 import { fetchCompetition, fetchTeams, fetchAllMatches } from "@/utils/footballapi";
 import bcrypt from "bcrypt";
 
-import dotenv from 'dotenv';
-dotenv.config();
+// Load .env from the sportsdeck folder even if cwd is wrong (e.g. running from repo root).
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+dotenv.config({ path: path.join(projectRoot, ".env") });
+dotenv.config({ path: path.join(projectRoot, ".env.local") });
+
+// Supabase direct host often resolves to IPv6 first; many home networks cannot reach it.
+dns.setDefaultResultOrder("ipv4first");
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting seed...");
+
+  if (!process.env.DATABASE_URL?.trim()) {
+    console.error("❌ DATABASE_URL is missing. Set it in sportsdeck/.env (see .env.example).");
+    process.exit(1);
+  }
+
+  try {
+    await prisma.$connect();
+  } catch (e) {
+    console.error("❌ Could not connect to the database.");
+    console.error(e);
+    console.error(`
+Try:
+  • Supabase: open the dashboard and resume the project if it is paused.
+  • Use a connection string with ?sslmode=require (Supabase usually needs SSL).
+  • If host is db.*.supabase.co and it still fails, use Connection pooling → URI
+    (pooler host, port 6543) and add &pgbouncer=true for Prisma.
+  • Or seed against local Docker: DATABASE_URL postgresql://postgres:password@localhost:8008/sportsdeck
+`);
+    process.exit(1);
+  }
 
   // ---------------------------------------------------------------------------
   // Step 1: Seed the Season

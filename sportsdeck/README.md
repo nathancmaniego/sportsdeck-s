@@ -68,4 +68,4 @@ npm run dev
 | `npm run dev` | Next.js dev server |
 | `npm run build` | Production build (no migrate; use Vercel build or run `prisma migrate deploy` yourself) |
 | `npm run start` | Start production server after `build` |
-| `npm run seed` | Seed database |
+| `npm run seed` | Run `prisma migrate deploy`, then seed (safe for a fresh Supabase DB) |

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma/db";
 import { authenticate, isAdmin } from "@/utils/auth";
-
+// Prompt: Generate a POST endpoint that approves a ban appeal.
+// Claude claude-4.6-opus-high-thinking
 /**
  * POST /api/admin/appeals/[id]/approve
  * Approves a ban appeal: unbans the user and marks appeal as approved.

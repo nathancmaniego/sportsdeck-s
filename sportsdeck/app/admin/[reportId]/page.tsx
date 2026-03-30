@@ -1,5 +1,6 @@
 "use client";
-
+// Prompt: Generate a page that displays the details of a specific report.
+// Claude claude-4.6-opus-high-thinking
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";

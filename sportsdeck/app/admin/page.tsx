@@ -1,5 +1,6 @@
 "use client";
-
+// Prompt: Generate a page that displays the moderation queue for the admin.
+// Claude claude-4.6-opus-high-thinking
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Shield, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, AlertTriangle, Trash2, Gavel } from "lucide-react";

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma/db";
 import { authenticate, isAdmin } from "@/utils/auth";
-
+// Prompt: Generate a GET endpoint that returns the appeals for the admin.
+// Claude claude-4.6-opus-high-thinking
 /**
  * GET /api/admin/appeals
  * Query params:

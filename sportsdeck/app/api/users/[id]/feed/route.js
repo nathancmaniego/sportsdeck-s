@@ -56,6 +56,8 @@ export async function GET(req, { params }) {
   const limit      = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20")));
   const unreadOnly = searchParams.get("unreadOnly") === "true";
 
+  const systemActor = await getSystemActorForFeed();
+
   // ------------------------------------------------------------------
   // 1. Fetch raw feed events for this user
   // ------------------------------------------------------------------
@@ -68,7 +70,7 @@ export async function GET(req, { params }) {
     where,
     include: {
       actor:  { select: { id: true, username: true, avatar: true } },
-      thread: { select: { id: true, title: true, teamId: true } },
+      thread: { select: { id: true, title: true, teamId: true, isAutoCreated: true } },
       post:   { select: { id: true, content: true } },
       match: {
         include: {
@@ -90,6 +92,15 @@ export async function GET(req, { params }) {
   const groupMap = new Map(); // groupKey → latest event + count
 
   for (const event of allEvents) {
+    // No "SportsDeck started a new thread" for auto match threads — only posts inside them.
+    if (
+      event.type === "new_thread" &&
+      (event.thread?.isAutoCreated === true ||
+        (systemActor && event.actorId === systemActor.id))
+    ) {
+      continue;
+    }
+
     const key = event.groupKey ?? `ungrouped_${event.id}`;
 
     if (!groupMap.has(key)) {
@@ -169,7 +180,6 @@ export async function GET(req, { params }) {
       where: { id: userId },
       select: { favoriteTeamId: true },
     });
-    const systemActor = await getSystemActorForFeed();
 
     if (me?.favoriteTeamId && systemActor) {
       const teamId = me.favoriteTeamId;
@@ -266,7 +276,11 @@ export async function GET(req, { params }) {
 
   if (followingIds.length > 0) {
     const followThreads = await prisma.thread.findMany({
-      where: { authorId: { in: followingIds }, isHidden: false },
+      where: {
+        authorId: { in: followingIds },
+        isHidden: false,
+        isAutoCreated: false,
+      },
       include: {
         author: { select: { id: true, username: true, avatar: true } },
       },
@@ -309,7 +323,7 @@ export async function GET(req, { params }) {
       },
       include: {
         author: { select: { id: true, username: true, avatar: true } },
-        thread: { select: { id: true, title: true, teamId: true } },
+        thread: { select: { id: true, title: true, teamId: true, isAutoCreated: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 32,
@@ -365,6 +379,7 @@ export async function GET(req, { params }) {
     const maxForum = 14;
 
     const pushForumThread = (t) => {
+      if (t.isAutoCreated) return;
       if (added >= maxForum || coveredThreadIds.has(t.id)) return;
       coveredThreadIds.add(t.id);
       added++;
@@ -427,6 +442,7 @@ export async function GET(req, { params }) {
       const teamThreads = await prisma.thread.findMany({
         where: {
           isHidden: false,
+          isAutoCreated: false,
           authorId: { not: userId },
           teamId: favoriteTeamId,
         },
@@ -446,7 +462,7 @@ export async function GET(req, { params }) {
         },
         include: {
           author: { select: { id: true, username: true, avatar: true } },
-          thread: { select: { id: true, title: true, teamId: true } },
+          thread: { select: { id: true, title: true, teamId: true, isAutoCreated: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 16,
@@ -463,7 +479,7 @@ export async function GET(req, { params }) {
       },
       include: {
         author: { select: { id: true, username: true, avatar: true } },
-        thread: { select: { id: true, title: true, teamId: true } },
+        thread: { select: { id: true, title: true, teamId: true, isAutoCreated: true } },
       },
       orderBy: { createdAt: "desc" },
       take: globalTake,

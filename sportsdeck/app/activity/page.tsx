@@ -1,4 +1,6 @@
 "use client";
+// Prompt: Generate a page that displays the activity feed for the current user.
+// Claude claude-4.6-opus-high-thinking
 
 import { useState } from "react";
 import useSWR from "swr";

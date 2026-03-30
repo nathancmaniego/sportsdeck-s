@@ -55,15 +55,15 @@
 - [x] Create thread form — title, body, tags (create new inline)
 - [x] Reply form — inline, auth-gated
 - [x] Edit / delete own posts, replies, threads
-- [ ] Translate post/comment button — inline result
+- [x] Translate post/comment button — inline result
 
 
 #### Frontend — Moderation
-- [ ] Report post/thread form with reason field
-- [ ] Admin moderation queue — sorted by AI verdict + report count
-- [ ] Admin review panel — AI verdict display, dismiss/approve/hide
-- [ ] Admin ban/unban user UI
-- [ ] User appeal form — submit unban request
+- [x] Report post/thread form with reason field
+- [x] Admin moderation queue — sorted by AI verdict + report count
+- [x] Admin review panel — AI verdict display, dismiss/approve/hide
+- [x] Admin ban/unban user UI
+- [x] User appeal form — submit unban request
 
 ---
 
@@ -71,10 +71,10 @@
 
 These must be agreed on before either person builds their pages. One person implements, both consume.
 
-- [ ] **Auth context** — JWT storage (httpOnly cookie recommended), `useAuth()` hook that exposes `user`, `login()`, `logout()`, and an `isLoading` state. Every page reads from this, never from raw localStorage.
-- [ ] **Dark/light mode toggle** — implement via `next-themes` or a Tailwind `dark:` class strategy on `<html>`. Set it up once in the root layout.
-- [ ] **Shared UI component library** — agree on and build: `Button`, `Card`, `Modal`, `Avatar`, `Badge`, `Spinner`, `Toast/Snackbar`. Both use these; no diverging styles.
-- [ ] **Global error + loading patterns** — agree on how async states look across the app (skeleton loaders vs spinners, toast vs inline error). Consistent behaviour is part of the UX grade.
+- [x] **Auth context** — JWT storage (httpOnly cookie recommended), `useAuth()` hook that exposes `user`, `login()`, `logout()`, and an `isLoading` state. Every page reads from this, never from raw localStorage.
+- [x] **Dark/light mode toggle** — implement via `next-themes` or a Tailwind `dark:` class strategy on `<html>`. Set it up once in the root layout.
+- [x] **Shared UI component library** — agree on and build: `Button`, `Card`, `Modal`, `Avatar`, `Badge`, `Spinner`, `Toast/Snackbar`. Both use these; no diverging styles.
+- [x] **Global error + loading patterns** — agree on how async states look across the app (skeleton loaders vs spinners, toast vs inline error). Consistent behaviour is part of the UX grade.
 
 ---
 

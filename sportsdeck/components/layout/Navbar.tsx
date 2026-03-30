@@ -15,7 +15,6 @@ import {
   Menu,
   LogOut,
   User as UserIcon,
-  Settings,
   Shield,
   LayoutDashboard,
 } from "lucide-react";
@@ -137,10 +136,6 @@ export default function Navbar() {
                   <DropdownMenuItem render={<Link href={`/users/${user.id}`} />} className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4" />
                     My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/profile" />} className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Settings
                   </DropdownMenuItem>
                   {user.role === "admin" && (
                     <>

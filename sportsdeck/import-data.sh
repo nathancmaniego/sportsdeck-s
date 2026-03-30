@@ -2,5 +2,5 @@
 set -e
 
 echo "📥 Importing data..."
-node scripts/seed.js
+npm run seed
 echo "✅ Done."

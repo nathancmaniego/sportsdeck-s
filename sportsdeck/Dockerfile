@@ -9,7 +9,7 @@ COPY package*.json ./
 # Copy the rest of the app
 COPY . .
 
-RUN rm -rf node_modules package-lock.json && npm install
+RUN rm -rf node_modules package-lock.json&& npm install
 
 RUN npx prisma generate
 
